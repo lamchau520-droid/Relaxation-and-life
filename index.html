@@ -451,23 +451,47 @@ const CROPS = {
   corn:   { n: "Bắp",     t: 6,  c: "#f5d742", seed: "sd_corn",   item: "corn",   qty: 1 },
   apple:  { n: "Táo",     t: 12, regrow: 10, multi: true, c: "#d93a2b", seed: "sd_apple",  item: "apple",  qty: 1 },
   pine:   { n: "Dứa",     t: 16, c: "#e6b800", seed: "sd_pine",   item: "pine",   qty: 1 },
-  coconut: { n: "Dừa", t: 30, regrow: 20, multi: true, c: "#6fae3a", seed: "sd_coconut", item: "coconut", qty: 1 }
+  coconut: { n: "Dừa", t: 30, regrow: 20, multi: true, c: "#6fae3a", seed: "sd_coconut", item: "coconut", qty: 1 },
+  custard: { n: "Mãng cầu", t: 26, regrow: 22, multi: true, c: "#9bc23a", seed: "sd_custard", item: "custard", qty: 1 }
 };
 const ITEMS = {
-  sd_carrot: { n: "Hạt cà rốt", buy: 10 }, sd_straw: { n: "Hạt dâu", buy: 50 }, sd_pump: { n: "Hạt bí ngô", buy: 200 },
-  carrot: { n: "Cà rốt", sell: 15 }, straw: { n: "Dâu", sell: 32 }, pump: { n: "Bí ngô", sell: 75 },
-  f_roi: { n: "Cá rô", sell: 12 }, f_chep: { n: "Cá chép", sell: 28 }, f_hoi: { n: "Cá hồi", sell: 50 },
-  f_vang: { n: "Cá vàng", sell: 120 }, boot: { n: "Giày cũ", sell: 1 },
-  sd_tomato: { n: "Hạt cà chua", buy: 500 }, sd_chili: { n: "Hạt ớt", buy: 3667 }, sd_melon: { n: "Hạt dưa hấu", buy: 1000 },
-  tomato: { n: "Cà chua", sell: 22 }, chili: { n: "Ớt", sell: 40 }, melon: { n: "Dưa hấu", sell: 180 },
-  sd_grape: { n: "Hạt nho", buy: 2000 }, sd_durian: { n: "Hạt sầu riêng", buy: 3000 }, sd_mango: { n: "Hạt xoài", buy: 5000 },
-  sd_corn: { n: "Hạt bắp", buy: 200 }, sd_apple: { n: "Hạt táo", buy: 1000 }, sd_pine: { n: "Hạt dứa", buy: 1500 },
-  grape: { n: "Nho", sell: 4000 }, durian: { n: "Sầu riêng", sell: 6000 }, mango: { n: "Xoài", sell: 10000 },
-  corn: { n: "Bắp", sell: 400 }, apple: { n: "Táo", sell: 2000 }, pine: { n: "Dứa", sell: 3000 }, sd_coconut: { n: "Hạt dừa", buy: 10000 }, coconut: { n: "Dừa", sell: 20000 }
+  sd_carrot: {n: "Hạt cà rốt", buy: 10},
+  sd_straw: {n: "Hạt dâu", buy: 50},
+  sd_pump: {n: "Hạt bí ngô", buy: 200},
+  carrot: {n: "Cà rốt", sell: 15},
+  straw: {n: "Dâu", sell: 32},
+  pump: {n: "Bí ngô", sell: 75},
+  f_roi: {n: "Cá rô", sell: 12},
+  f_chep: {n: "Cá chép", sell: 28},
+  f_hoi: {n: "Cá hồi", sell: 50},
+  f_vang: {n: "Cá vàng", sell: 120},
+  boot: {n: "Giày cũ", sell: 1},
+  sd_tomato: {n: "Hạt cà chua", buy: 500},
+  sd_chili: {n: "Hạt ớt", buy: 3667},
+  sd_melon: {n: "Hạt dưa hấu", buy: 1000},
+  tomato: {n: "Cà chua", sell: 18, kg: true},
+  chili: {n: "Ớt", sell: 40},
+  melon: {n: "Dưa hấu", sell: 144, kg: true},
+  sd_grape: {n: "Hạt nho", buy: 2000},
+  sd_durian: {n: "Hạt sầu riêng", buy: 3000},
+  sd_mango: {n: "Hạt xoài", buy: 5000},
+  sd_corn: {n: "Hạt bắp", buy: 200},
+  sd_apple: {n: "Hạt táo", buy: 1000},
+  sd_pine: {n: "Hạt dứa", buy: 1500},
+  grape: {n: "Nho", sell: 3200, kg: true},
+  durian: {n: "Sầu riêng", sell: 4800, kg: true},
+  mango: {n: "Xoài", sell: 8000, kg: true},
+  corn: {n: "Bắp", sell: 400},
+  apple: {n: "Táo", sell: 1600, kg: true},
+  pine: {n: "Dứa", sell: 2400, kg: true},
+  sd_coconut: {n: "Hạt dừa", buy: 10000},
+  coconut: {n: "Dừa", sell: 16000, kg: true},
+  sd_custard: {n: "Hạt mãng cầu", buy: 1000000},
+  custard: {n: "Mãng cầu", sell: 100000, kg: true}
 };
 /* Kho hạt giống: mỗi 10 phút nhập lại đầy đủ */
 const RESTOCK_MS = 10 * 60 * 1000;
-const SHOP_STOCK = { sd_carrot: 10, sd_straw: 6, sd_pump: 3, sd_tomato: 6, sd_chili: 4, sd_melon: 2, sd_grape: 4, sd_durian: 2, sd_mango: 2, sd_corn: 8, sd_apple: 3, sd_pine: 3, sd_coconut: 1 };
+const SHOP_STOCK = { sd_carrot: 10, sd_straw: 6, sd_pump: 3, sd_tomato: 6, sd_chili: 4, sd_melon: 2, sd_grape: 4, sd_durian: 2, sd_mango: 2, sd_corn: 8, sd_apple: 3, sd_pine: 3, sd_coconut: 1, sd_custard: 1 };
 function shopRefresh(){
   const now = Date.now();
   if (!S.shop) { S.shop = { st: Object.assign({}, SHOP_STOCK), at: now + RESTOCK_MS }; return; }
@@ -494,8 +518,8 @@ const SEEDS = Object.keys(CROPS);
 const SAVE_KEY = "vuoncau_save_v1";
 
 const S = {
-  gender: "boy", name: "Nông dân", coins: 30, gv: 4, can: 0,
-  inv: { sd_carrot: 5, sd_straw: 0, sd_pump: 0, sd_tomato: 0, sd_chili: 0, sd_melon: 0, carrot: 0, straw: 0, pump: 0, tomato: 0, chili: 0, melon: 0, sd_grape: 0, sd_durian: 0, sd_mango: 0, sd_corn: 0, sd_apple: 0, sd_pine: 0, grape: 0, durian: 0, mango: 0, corn: 0, apple: 0, pine: 0, sd_coconut: 0, coconut: 0, f_roi: 0, f_chep: 0, f_hoi: 0, f_vang: 0, boot: 0 },
+  gender: "boy", name: "Nông dân", coins: 30, gv: 4, can: 0, wt: {},
+  inv: { sd_carrot: 5, sd_straw: 0, sd_pump: 0, sd_tomato: 0, sd_chili: 0, sd_melon: 0, carrot: 0, straw: 0, pump: 0, tomato: 0, chili: 0, melon: 0, sd_grape: 0, sd_durian: 0, sd_mango: 0, sd_corn: 0, sd_apple: 0, sd_pine: 0, grape: 0, durian: 0, mango: 0, corn: 0, apple: 0, pine: 0, sd_coconut: 0, coconut: 0, sd_custard: 0, custard: 0, f_roi: 0, f_chep: 0, f_hoi: 0, f_vang: 0, boot: 0 },
   tilled: {}, crops: {}, tool: 0, seed: "carrot", px: 11 * T + 8, py: 10 * T, face: "down", day: 0.25, gift: 0, quest: 0, nq: {}, up: {}, pet: null, pfood: 0
 };
 const P = { moving: false, frame: 0, ft: 0 };
@@ -519,6 +543,7 @@ function blocked(x, y){
   return solidAt(x - 4, y) || solidAt(x + 4, y) || solidAt(x - 4, y - 4) || solidAt(x + 4, y - 4);
 }
 
+let gateCool = 0;
 function movePlayer(ix, iy, dt){
   P.moving = ix !== 0 || iy !== 0;
   if (!P.moving) { P.frame = 0; return; }
@@ -528,6 +553,10 @@ function movePlayer(ix, iy, dt){
   if (!blocked(S.px + dx, S.py)) S.px += dx;
   if (!blocked(S.px, S.py + dy)) S.py += dy;
   S.face = Math.abs(ix) > Math.abs(iy) ? (ix < 0 ? "left" : "right") : (iy < 0 ? "up" : "down");
+  // Đi bộ chạm cổng (đúng hàng) thì tự chuyển khu, không cần bấm A
+  if (!inHome && playing && Math.abs(S.py - (12 * T + 8)) < 8 && Math.abs(S.px - (38 * T + 8)) < 16 && Date.now() - gateCool > 1500) {
+    gateCool = Date.now(); useGate();
+  }
   P.ft += dt; if (P.ft > 0.18) { P.ft = 0; P.frame++; }
 }
 
@@ -623,8 +652,9 @@ function act(){
   if (tx >= 38) { gardenAct(tx, ty); return; }
   const crop = S.crops[id];
   if (crop && crop.s === 3) {
-    const d = CROPS[crop.t]; S.inv[d.item] += d.qty;
-    if (d.multi) { crop.s = 2; crop.p = 0; crop.w = false; crop.h = (crop.h | 0) + 1; } else delete S.crops[id];
+    const d = CROPS[crop.t], yq = (crop.big && d.multi) ? 3 : d.qty;
+    addFruit(d.item, yq, ITEMS[d.item] && ITEMS[d.item].kg ? randomKg(yq) : 0);
+    if (d.multi) { crop.s = 2; crop.p = 0; crop.w = false; crop.h = (crop.h | 0) + 1; if (crop.h >= 5) crop.big = true; } else delete S.crops[id];
     toast("Thu hoạch " + d.n + "!"); floatText("+" + d.n, tx * T + 8, ty * T, "#ffe08a"); refreshHud(); return;
   }
   if (tool === "hoe") {
@@ -717,7 +747,7 @@ $("dInFile").onchange = () => {
 const AUTH = { tok: localStorage.getItem("vc_tok") || "", name: localStorage.getItem("vc_name") || "", pend: null };
 const authMsg = t => { $("acMsg").textContent = t; };
 // Để trống nếu game mở từ chính link máy chủ. Nếu chơi từ trang/file khác, điền link máy chủ, ví dụ https://ten-game.onrender.com
-const GAME_SERVER = "https://v-ng-qu-c-1.onrender.com";
+const GAME_SERVER = "https://relaxation-and-life.onrender.com";
 function serverUrl(){
   const v = (localStorage.getItem("vc_server") || GAME_SERVER || "").trim().replace(/\/+$/, "");
   if (v) return v.replace(/^http/, "ws") + "/ws";
@@ -849,16 +879,26 @@ function renderShop(){
       b.onclick = () => { if (S.shop.st[k] <= 0) return toast("Hết hàng, chờ nhập hàng"); if (S.coins >= it.buy) { S.coins -= it.buy; S.inv[k]++; S.shop.st[k]--; refreshHud(); renderShop(); } else toast("Không đủ xu"); };
       row.appendChild(b); buy.appendChild(row);
     } else if (S.inv[k] > 0) {
-      row.innerHTML = "<span>" + it.n + " x" + S.inv[k] + "</span>";
-      const b = document.createElement("button"); b.textContent = "Bán " + it.sell * S.inv[k];
-      b.onclick = () => { S.coins += it.sell * S.inv[k]; S.inv[k] = 0; refreshHud(); renderShop(); };
+      row.innerHTML = "<span>" + it.n + " x" + S.inv[k] + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "") + "</span>";
+      const b = document.createElement("button"); b.textContent = "Bán " + itemValue(k);
+      b.onclick = () => { sellItem(k); refreshHud(); renderShop(); };
       row.appendChild(b); sell.appendChild(row);
     }
   });
   if (!sell.children.length) sell.innerHTML = "<div class='row'><span>Chưa có gì để bán</span></div>";
 }
+const round1 = v => Math.round(v * 10) / 10;
+function randomKg(n){ let t = 0; for (let i = 0; i < n; i++) t += 0.5 + Math.random() * 1.5; return round1(t); }
+function addFruit(k, q, kg){ S.inv[k] = (S.inv[k] || 0) + q; S.wt = S.wt || {}; if (kg) S.wt[k] = round1((S.wt[k] || 0) + kg); }
+function itemValue(k){
+  const it = ITEMS[k];
+  if (!it.kg) return it.sell * S.inv[k];
+  const kg = (S.wt && S.wt[k] != null) ? S.wt[k] : S.inv[k] * 1.25; // quả cũ chưa có số kg: ước tính 1,25 kg
+  return Math.round(kg * it.sell);
+}
+function sellItem(k){ S.coins += itemValue(k); S.inv[k] = 0; if (S.wt) S.wt[k] = 0; }
 function sellAll(){
-  Object.keys(ITEMS).forEach(k => { const it = ITEMS[k]; if (it.sell && S.inv[k] > 0) { S.coins += it.sell * S.inv[k]; S.inv[k] = 0; } });
+  Object.keys(ITEMS).forEach(k => { if (ITEMS[k].sell && S.inv[k] > 0) sellItem(k); });
   refreshHud(); renderShop();
 }
 
@@ -1245,7 +1285,7 @@ function netMsg(m){
   else if (m.t === "auth") onAuth(m);
   else if (m.t === "synced") applySynced(m.save);
   else if (m.t === "gmsg") { toast(m.m); }
-  else if (m.t === "gitem") { S.inv[m.k] = (S.inv[m.k] || 0) + m.q; refreshHud(); toast("Thu hoạch " + m.n + " ở Vườn chung!"); }
+  else if (m.t === "gitem") { addFruit(m.k, m.q, m.kg || 0); refreshHud(); toast("Thu hoạch " + m.n + (m.kg ? " (" + m.kg + " kg)" : "") + " ở Vườn chung!"); }
   else if (m.t === "login") { net.admin = !!m.ok; chatPush(m.ok ? "Đã mở khóa quyền admin." : "Sai mã admin.", m.ok ? "#8bd17c" : "#e8647a"); }
 }
 function netTick(dt){
@@ -1309,7 +1349,8 @@ function selectTool(i){
 function refreshHud(){
   $("coins").textContent = S.coins + " xu";
   const i = S.inv, fish = i.f_roi + i.f_chep + i.f_hoi + i.f_vang;
-  $("stock").textContent = "Cà rốt " + i.carrot + " · Dâu " + i.straw + " · Bí " + i.pump + " · Cá " + fish;
+  const fruitKg = Object.keys(ITEMS).reduce((a, k) => a + ((ITEMS[k].kg && S.wt && S.wt[k]) || 0), 0);
+  $("stock").textContent = "Cà rốt " + i.carrot + " · Dâu " + i.straw + " · Bí " + i.pump + " · Cá " + fish + " · Trái " + round1(fruitKg) + " kg";
   toolEls.forEach((b, k) => { b.classList.toggle("on", k === S.tool); b.setAttribute("aria-pressed", k === S.tool); });
   toolEls[1].querySelector("span").textContent = "Tưới " + S.can + "/" + CAN_MAX;
   toolEls[2].querySelector("span").textContent = CROPS[S.seed].n;
@@ -1350,7 +1391,7 @@ joy.addEventListener("pointerup", joyEnd); joy.addEventListener("pointercancel",
 $("act").addEventListener("pointerdown", e => { e.preventDefault(); F.hold = true; act(); });
 ["pointerup", "pointercancel", "blur"].forEach(ev => addEventListener(ev, () => { F.hold = false; }));
 $("shopX").onclick = closeShop; $("sellAll").onclick = sellAll;
-const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut"]], ["Cá", ["f_roi", "f_chep", "f_hoi", "f_vang"]], ["Khác", ["boot"]]];
+const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut", "sd_custard"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut", "custard"]], ["Cá", ["f_roi", "f_chep", "f_hoi", "f_vang"]], ["Khác", ["boot"]]];
 function renderBag(){
   $("bagCoins").textContent = S.coins;
   const box = $("bagList"); box.innerHTML = ""; let any = false;
@@ -1377,7 +1418,7 @@ function renderBag(){
     const h = document.createElement("h3"); h.textContent = g[0]; box.appendChild(h);
     have.forEach(k => {
       const row = document.createElement("div"); row.className = "row";
-      const nm = document.createElement("span"); nm.textContent = ITEMS[k].n; const ct = document.createElement("b"); ct.textContent = "x" + S.inv[k];
+      const nm = document.createElement("span"); nm.textContent = ITEMS[k].n; const ct = document.createElement("b"); ct.textContent = "x" + S.inv[k] + (ITEMS[k].kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "");
       row.appendChild(nm); row.appendChild(ct);
       const sk = SEEDS.find(s => CROPS[s].seed === k);
       if (sk) eq(row, S.seed === sk, "Đang chọn", () => { S.seed = sk; S.tool = 2; refreshHud(); renderBag(); toast("Trang bị: Hạt " + CROPS[sk].n); });
@@ -1418,6 +1459,7 @@ if (old) { $("cont").hidden = false; $("cont").onclick = () => { Object.assign(S
 /* ----- Vẽ ----- */
 function drawCrop(c, x, y){
   const d = CROPS[c.t], g = "#3f9f45", g2 = "#2f7d3c";
+  if (c.big && c.s === 3) { rect(ctx, g2, x + 1, y, 14, 3); rect(ctx, g, x, y + 1, 16, 2); rect(ctx, g2, x + 6, y + 13, 4, 3); }
   if (c.s === 0) { rect(ctx, g, x + 7, y + 9, 2, 3); }
   else if (c.s === 1) { rect(ctx, g, x + 7, y + 6, 2, 6); rect(ctx, g2, x + 5, y + 6, 2, 2); rect(ctx, g2, x + 9, y + 7, 2, 2); }
   else if (c.s === 2) { rect(ctx, g2, x + 4, y + 5, 8, 7); rect(ctx, g, x + 5, y + 4, 6, 6); }

@@ -41,7 +41,8 @@ const CROPS_S = {
   corn: { n: "Bắp", t: 6, item: "corn", qty: 1 },
   apple: { n: "Táo", t: 12, regrow: 10, multi: true, item: "apple", qty: 1 },
   pine: { n: "Dứa", t: 16, item: "pine", qty: 1 },
-  coconut: { n: "Dừa", t: 30, regrow: 20, multi: true, item: "coconut", qty: 1 }
+  coconut: { n: "Dừa", t: 30, regrow: 20, multi: true, item: "coconut", qty: 1 },
+  custard: { n: "Mãng cầu", t: 26, regrow: 22, multi: true, item: "custard", qty: 1 }
 };
 // Thời tiết: cùng công thức với client
 const WEATHER = [
@@ -57,6 +58,8 @@ function weatherAt(ms){
   let h = Math.imul(slot ^ 0x2545f491, 0x9e3779b1); h ^= h >>> 15; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13;
   return WEATHER[(h >>> 0) % WEATHER.length];
 }
+const KG_ITEMS = new Set(["grape", "durian", "mango", "apple", "pine", "coconut", "custard", "melon", "tomato"]);
+const randKg = n => { let t = 0; for (let i = 0; i < n; i++) t += 0.5 + Math.random() * 1.5; return Math.round(t * 10) / 10; };
 const DRY_LIMIT = 60; // cây chưa được tưới quá 60 giây (khi chưa chín) sẽ chết
 const PLOTN = 8;
 const plotX = p => 40 + (p % 2) * 14, plotY = p => 14 + (p >> 1) * 17;
@@ -114,7 +117,7 @@ function sanitizeSave(s){
   for (const k in (s.crops || {})) {
     const id = +k, c = s.crops[k], vx = id % W, vy = Math.floor(id / W);
     if (!Number.isInteger(id) || id < 0 || !inFarm(vx, vy) || !c || !CROPS_S[c.t]) continue;
-    crops[id] = { t: c.t, s: Math.max(0, Math.min(3, c.s | 0)), p: Math.max(0, Math.min(999, +c.p || 0)), w: !!c.w, h: Math.max(0, c.h | 0), dry: Math.max(0, +c.dry || 0) };
+    crops[id] = { t: c.t, s: Math.max(0, Math.min(3, c.s | 0)), p: Math.max(0, Math.min(999, +c.p || 0)), w: !!c.w, h: Math.max(0, c.h | 0), big: !!c.big, dry: Math.max(0, +c.dry || 0) };
   }
   return Object.assign({}, s, { tilled, crops });
 }
@@ -255,8 +258,9 @@ wss.on("connection", ws => {
       else if (m.a === "seed") { if (!sv.tilled[vid] || sv.crops[vid] || !CROPS_S[m.seed]) return; sv.crops[vid] = { t: m.seed, s: 0, p: 0, w: false }; }
       else if (m.a === "harvest") {
         const c = sv.crops[vid]; if (!c || c.s < 3) return;
-        const d = CROPS_S[c.t]; send(ws, { t: "gitem", k: d.item, q: d.qty, n: d.n });
-        if (d.multi) { c.s = 2; c.p = 0; c.w = false; c.h = (c.h | 0) + 1; } else delete sv.crops[vid];
+        const d = CROPS_S[c.t], yq = (c.big && d.multi) ? 3 : d.qty;
+        send(ws, { t: "gitem", k: d.item, q: yq, n: d.n, kg: KG_ITEMS.has(d.item) ? randKg(yq) : 0 });
+        if (d.multi) { c.s = 2; c.p = 0; c.w = false; c.h = (c.h | 0) + 1; if (c.h >= 5) c.big = true; } else delete sv.crops[vid];
       }
       else return;
       dirty = true;
