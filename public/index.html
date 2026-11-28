@@ -781,20 +781,30 @@ const DATA_PREFIX = "VCG1:";
 function exportObj(){ const o = Object.assign({ gv: 4 }, S); return o; }
 function encodeSave(obj){ return DATA_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function decodeSave(text){
-  let t = String(text || "").trim();
-  if (t[0] === "{") return JSON.parse(t);
-  if (t.startsWith(DATA_PREFIX)) t = t.slice(DATA_PREFIX.length);
-  return JSON.parse(decodeURIComponent(escape(atob(t))));
+  let t = String(text || "").replace(/[\u200B-\u200D\u2060\uFEFF\u00A0]/g, " ").trim();
+  // file/mã JSON thuần (có thể kèm dấu nháy hoặc chữ thừa quanh nó)
+  const a = t.indexOf("{"), z = t.lastIndexOf("}");
+  if (a >= 0 && z > a && !/^VCG1/i.test(t.replace(/^[^A-Za-z0-9{]+/, ""))) { try { return JSON.parse(t.slice(a, z + 1)); } catch (e) {} }
+  // mã VCG1:...: bỏ tiền tố, dấu nháy, khoảng trắng, xuống dòng và mọi ký tự lạ do chép/dán
+  const m = t.match(/VCG1\s*[:：]/i); if (m) t = t.slice(m.index + m[0].length);
+  t = t.replace(/-/g, "+").replace(/_/g, "/").replace(/[^A-Za-z0-9+\/]/g, "");
+  while (t.length % 4) t += "=";
+  const bin = atob(t), bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 const dataMsg = t => { $("dMsg").textContent = t; };
 function openData(){ $("dText").value = encodeSave(exportObj()); dataMsg(""); $("dataP").hidden = false; }
 function importData(raw){
-  let d; try { d = decodeSave(raw); } catch (e) { return dataMsg("Mã hoặc file không đúng, kiểm tra lại."); }
-  if (!d || typeof d !== "object" || !d.inv) return dataMsg("Dữ liệu không hợp lệ.");
+  if (!String(raw || "").trim()) return dataMsg("Hãy dán mã vào ô trước khi nhập.");
+  let d; try { d = decodeSave(raw); } catch (e) { return dataMsg("Mã bị thiếu hoặc chép sai (hãy chép đủ cả mã, từ chữ VCG1: đến hết)."); }
+  if (!d || typeof d !== "object" || !d.inv) return dataMsg("Dữ liệu không hợp lệ (không có túi đồ).");
   d = migrateSave(d);
   if (!d || d.gv !== 4) return dataMsg("Dữ liệu từ phiên bản quá cũ, không nhập được.");
   const keepShop = S.shop; // không cho nhập file để đổi kho cửa hàng
-  Object.assign(S, d, { inv: Object.assign({}, S.inv, d.inv), shop: keepShop }); farmRowsApply();
+  Object.assign(S, d, { inv: Object.assign({}, S.inv, d.inv), shop: keepShop });
+  if (!S.crops || typeof S.crops !== "object") S.crops = {}; if (!S.tilled || typeof S.tilled !== "object") S.tilled = {};
+  if (!(S.px < 38 * T) || !(S.py > 0)) { S.px = 11 * T + 8; S.py = 10 * T; S.face = "down"; } // không để kẹt ở Vườn chung
+  farmRowsApply();
   save(); refreshHud();
   if (net.on && AUTH.name) netSend({ t: "sync", save: S, same: true });
   dataMsg("Đã nhập dữ liệu. Tiếp tục chơi nhé!");
@@ -894,8 +904,10 @@ if (AUTH.tok) { $("btnOnline").hidden = false; $("btnOnline").textContent = AUTH
 
 /* Trồng cách nhau ít nhất 1 ô: không có cây ở 8 ô xung quanh */
 const NEAR8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
-function nearCropVillage(tx, ty){ return NEAR8.some(([dx, dy]) => S.crops[(ty + dy) * W + tx + dx]); }
-function gardenNear(pl, tx, ty){ return NEAR8.some(([dx, dy]) => { const t = pl.tiles[String((ty + dy) * W + tx + dx)]; return !!(t && t.c); }); }
+/* Cây thu hoạch 1 lần được trồng sát nhau; chỉ cây thu hoạch nhiều lần (cây to) cần chỗ, và chỉ tính các cây nhiều lần xung quanh */
+const isMulti = c => !!(c && CROPS[c.t] && CROPS[c.t].multi);
+function nearCropVillage(tx, ty){ if (!CROPS[S.seed].multi) return false; return NEAR8.some(([dx, dy]) => isMulti(S.crops[(ty + dy) * W + tx + dx])); }
+function gardenNear(pl, tx, ty){ if (!CROPS[S.seed].multi) return false; return NEAR8.some(([dx, dy]) => { const t = pl.tiles[String((ty + dy) * W + tx + dx)]; return !!(t && isMulti(t.c)); }); }
 /* Hiện số kg của trái đã chín khi người chơi đứng gần (trong vòng 2 ô) */
 function cropKgLabel(c, x, y, px, py){
   if (c.s !== 3 || c.kg == null) return;
