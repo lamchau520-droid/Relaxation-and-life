@@ -106,6 +106,13 @@ const newFarm = () => ({ gv: 4, tilled: {}, crops: {} });
 const hashPw = (pw, salt) => crypto.scryptSync(pw, salt, 32).toString("hex");
 const safeEq = (a, b) => a.length === b.length && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
 const newToken = () => crypto.randomBytes(24).toString("hex");
+const HEXC = /^#[0-9a-fA-F]{6}$/;
+function cleanLook(l){
+  const o = {}; if (!l || typeof l !== "object") return o;
+  ["skin", "hair", "top", "bottom"].forEach(k => { if (HEXC.test(String(l[k] || ""))) o[k] = l[k]; });
+  if (Number.isInteger(l.style) && l.style >= 0 && l.style <= 3) o.style = l.style;
+  return o;
+}
 const validName = n => /^[\p{L}\p{N} ]{2,12}$/u.test(n);
 
 /* Lọc bản lưu gửi lên: chỉ nhận đúng phiên bản và ô đất/cây hợp lệ */
@@ -217,13 +224,14 @@ wss.on("connection", ws => {
     if (m.t === "hello") {
       if (ws.p || !ws.acc) return;
       const id = nextId++, name = accounts[ws.acc].name;
-      ws.p = { id, n: name, g: m.g === "girl" ? "girl" : "boy", x: 0, y: 0, f: "down", m: 0, r: "out" };
+      ws.p = { id, n: name, g: m.g === "girl" ? "girl" : "boy", look: cleanLook(m.look), x: 0, y: 0, f: "down", m: 0, r: "out" };
       send(ws, { t: "welcome", id }); send(ws, { t: "day", d: dayNow() });
       all({ t: "sys", m: name + " đã vào làng" });
       return;
     }
     if (!ws.p) return;
     const p = ws.p;
+    if (m.t === "look") { p.look = cleanLook(m.look); const a = ws.acc && accounts[ws.acc]; if (a && a.save) { a.save.look = p.look; dirty = true; } return; }
     if (m.t === "pos") {
       p.x = num(m.x, 0, 4000); p.y = num(m.y, 0, 4000);
       if (["up", "down", "left", "right"].includes(m.f)) p.f = m.f;
