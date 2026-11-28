@@ -77,6 +77,15 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0}
 .row span{min-width:0}.row button{padding:3px 10px;flex:none}
 .coinline{color:var(--gold)}
+#menu{flex-direction:column;align-items:center;justify-content:flex-start;gap:14px;overflow-y:auto}
+#menu>.card{margin-top:auto;flex:none}
+#menu>#acct{width:min(100%,400px);box-sizing:border-box;background:var(--panel);padding:16px;box-shadow:0 0 0 4px var(--line),0 8px 0 4px var(--shadow);margin:0 0 auto!important;flex:none}
+.lk{margin:4px 0}.lk h4{margin:4px 0 2px;font-weight:400;font-size:18px;color:var(--leaf)}
+.sw{display:flex;flex-wrap:wrap;gap:6px}
+.sw button{width:30px;height:30px;padding:0;box-shadow:0 0 0 2px var(--line)}
+.sw button.on{box-shadow:0 0 0 3px var(--gold)}
+.sw.st button{width:auto;padding:3px 10px;font-size:17px;background:var(--panel);color:var(--text)}
+.sw.st button.on{background:var(--gold);color:var(--shadow)}
 #bagTabs{display:flex;gap:4px;flex:none}
 #bagTabs button{flex:1 1 auto;padding:4px 3px;font-size:15px;white-space:nowrap;background:var(--panel);color:var(--text)}
 #bagTabs button.on{background:var(--gold);color:var(--shadow)}
@@ -114,7 +123,7 @@ input[type=range]{padding:0;box-shadow:none;background:transparent;accent-color:
 <div id="app">
   <canvas id="c"></canvas>
   <div id="hud" hidden>
-    <div class="top"><div class="pill" id="coins">30</div><div class="pill" id="clock">06:00</div><div class="pill" id="wx"></div><button class="pill" id="bagBtn">Túi đồ</button><button class="pill" id="dexBtn">Sổ tay</button><button class="pill" id="chatBtn">Chat</button><button class="pill" id="musBtn">♪ Nhạc</button><button class="pill" id="accBtn">Tài khoản</button><div class="pill" id="online" hidden></div><div id="stock"></div></div>
+    <div class="top"><div class="pill" id="coins">30</div><div class="pill" id="clock">06:00</div><div class="pill" id="wx"></div><button class="pill" id="bagBtn">Túi đồ</button><button class="pill" id="dexBtn">Sổ tay</button><button class="pill" id="lookBtn">Trang phục</button><button class="pill" id="chatBtn">Chat</button><button class="pill" id="musBtn">♪ Nhạc</button><button class="pill" id="accBtn">Tài khoản</button><div class="pill" id="online" hidden></div><div id="stock"></div></div>
     <div class="tools" id="tools"></div>
   </div>
   <div id="joy" hidden><div id="knob"></div></div>
@@ -133,6 +142,7 @@ input[type=range]{padding:0;box-shadow:none;background:transparent;accent-color:
         <button class="char sel" data-g="boy" aria-pressed="true"><canvas id="pvBoy" width="20" height="24"></canvas><span>Nam</span></button>
         <button class="char" data-g="girl" aria-pressed="false"><canvas id="pvGirl" width="20" height="24"></canvas><span>Nữ</span></button>
       </div>
+      <div id="lookBox"></div>
       <label for="nm">Tên nhân vật</label>
       <input id="nm" maxlength="12" placeholder="Nông dân" autocomplete="off">
       <button class="go" id="go">Bắt đầu</button>
@@ -186,6 +196,13 @@ input[type=range]{padding:0;box-shadow:none;background:transparent;accent-color:
       <div class="shead"><h2>Sổ tay</h2><button id="dexX">Đóng</button></div>
       <div style="display:flex;gap:8px"><button class="go alt" id="dexTabC" style="flex:1;font-size:22px">Cây trồng</button><button class="go alt" id="dexTabF" style="flex:1;font-size:22px">Các loài cá</button></div>
       <div id="dexList" style="max-height:60vh;overflow-y:auto"></div>
+    </div>
+  </section>
+  <section id="lookP" class="screen" hidden>
+    <div class="card">
+      <div class="shead"><h2>Trang phục</h2><button id="lookX">Đóng</button></div>
+      <div style="display:flex;justify-content:center"><canvas id="lookPv" width="20" height="24" style="width:100px;height:120px;image-rendering:pixelated"></canvas></div>
+      <div id="lookBox2"></div>
     </div>
   </section>
   <section id="cook" class="screen" hidden>
@@ -372,29 +389,57 @@ drawBuildings();
 for (let y = 0; y < H; y++) for (let x = 0; x < 40; x++) { put(x, y, 3); drawTile(x, y, 3); }
 
 /* ===== Nhân vật pixel: nam / nữ ===== */
-function drawChar(c, x, y, g, dir, frame){
-  const skin = "#f1c27d", sk2 = "#d9a45e";
+/* Ngoại hình: da, tóc, áo, quần/váy và kiểu tóc (0 ngắn, 1 dài, 2 mũ lưỡi trai, 3 tóc buộc) */
+const LOOK_DEF = {
+  boy: { skin: "#f1c27d", hair: "#6b4423", top: "#3d7be0", bottom: "#2d4a8a", style: 0 },
+  girl: { skin: "#f1c27d", hair: "#4a2a1c", top: "#e8647a", bottom: "#8e3b4f", style: 1 }
+};
+const HEX = /^#[0-9a-fA-F]{6}$/;
+function getLook(g, look){
+  const d = LOOK_DEF[g === "girl" ? "girl" : "boy"], o = Object.assign({}, d);
+  if (look && typeof look === "object") { ["skin", "hair", "top", "bottom"].forEach(k => { if (HEX.test(look[k] || "")) o[k] = look[k]; }); if (Number.isInteger(look.style) && look.style >= 0 && look.style <= 3) o.style = look.style; }
+  return o;
+}
+function shade(hex, f){
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
+  if (f <= 1) { r *= f; gg *= f; b *= f; } else { const t = f - 1; r += (255 - r) * t; gg += (255 - gg) * t; b += (255 - b) * t; }
+  const h = v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+  return "#" + h(r) + h(gg) + h(b);
+}
+function drawChar(c, x, y, g, dir, frame, look){
+  const L = getLook(g, look), skin = L.skin, sk2 = shade(skin, 0.85), hair = L.hair, st = L.style;
   const step = frame ? ((frame >> 0) % 2 ? 1 : -1) : 0;
   rect(c, "rgba(0,0,0,.25)", x - 5, y - 1, 10, 2);
   if (g === "girl") {
-    rect(c, "#8e3b4f", x - 3 + step, y - 3, 3, 3); rect(c, "#8e3b4f", x + 1 - step, y - 3, 3, 3);
-    rect(c, "#e8647a", x - 5, y - 7, 10, 5); rect(c, "#f08c9e", x - 5, y - 7, 10, 1);
+    rect(c, L.bottom, x - 3 + step, y - 3, 3, 3); rect(c, L.bottom, x + 1 - step, y - 3, 3, 3);
+    rect(c, L.top, x - 5, y - 7, 10, 5); rect(c, shade(L.top, 1.25), x - 5, y - 7, 10, 1);
   } else {
-    rect(c, "#2d4a8a", x - 3 + step, y - 4, 3, 4); rect(c, "#2d4a8a", x + 1 - step, y - 4, 3, 4);
-    rect(c, "#3d7be0", x - 4, y - 9, 8, 6); rect(c, "#5a95f0", x - 4, y - 9, 8, 1);
+    rect(c, L.bottom, x - 3 + step, y - 4, 3, 4); rect(c, L.bottom, x + 1 - step, y - 4, 3, 4);
+    rect(c, L.top, x - 4, y - 9, 8, 6); rect(c, shade(L.top, 1.25), x - 4, y - 9, 8, 1);
   }
   rect(c, skin, x - 6, y - 8, 2, 4); rect(c, skin, x + 4, y - 8, 2, 4);
   rect(c, skin, x - 4, y - 16, 8, 8);
   rect(c, sk2, x - 4, y - 9, 8, 1);
-  const hair = g === "girl" ? "#4a2a1c" : "#6b4423";
+  if (st === 3) { // tóc buộc: đuôi tóc phía sau
+    if (dir === "down") rect(c, hair, x + 4, y - 15, 2, 7); else if (dir === "up") rect(c, hair, x - 1, y - 9, 2, 6);
+    else rect(c, hair, dir === "left" ? x + 4 : x - 6, y - 15, 2, 7);
+  }
   if (dir === "up") {
     rect(c, hair, x - 5, y - 17, 10, 9);
-    if (g === "girl") rect(c, hair, x - 5, y - 9, 10, 4);
+    if (st === 1) rect(c, hair, x - 5, y - 9, 10, 4);
   } else {
     rect(c, hair, x - 5, y - 17, 10, 3); rect(c, hair, x - 5, y - 15, 2, 4); rect(c, hair, x + 3, y - 15, 2, 4);
-    if (g === "girl") { rect(c, hair, x - 5, y - 15, 2, 9); rect(c, hair, x + 3, y - 15, 2, 9); rect(c, "#ff7aa8", x + 2, y - 17, 3, 3); }
+    if (st === 1) { rect(c, hair, x - 5, y - 15, 2, 9); rect(c, hair, x + 3, y - 15, 2, 9); }
+    if (g === "girl" && (st === 1 || st === 3)) rect(c, "#ff7aa8", x + 2, y - 17, 3, 3);
     if (dir === "down") { rect(c, "#2a1a10", x - 3, y - 12, 1, 2); rect(c, "#2a1a10", x + 2, y - 12, 1, 2); }
     else { const ex = dir === "left" ? x - 3 : x + 2; rect(c, "#2a1a10", ex, y - 12, 1, 2); }
+  }
+  if (st === 2) { // mũ lưỡi trai
+    const cap = shade(L.top, 0.95);
+    rect(c, cap, x - 5, y - 18, 10, 4); rect(c, shade(cap, 1.25), x - 5, y - 18, 10, 1);
+    if (dir === "down") rect(c, shade(cap, 0.75), x - 5, y - 14, 10, 1);
+    else if (dir === "left") rect(c, shade(cap, 0.75), x - 8, y - 14, 4, 1);
+    else if (dir === "right") rect(c, shade(cap, 0.75), x + 4, y - 14, 4, 1);
   }
 }
 /* ===== Bên trong nhà ===== */
@@ -972,7 +1017,7 @@ function goOnline(){
   authMsg("Đang vào khu online...");
   if (net.on) netSend({ t: "acc_token", tk: AUTH.tok }); else netConnect();
 }
-function sendHello(){ netSend({ t: "hello", g: S.gender }); }
+function sendHello(){ netSend({ t: "hello", g: S.gender, look: S.look }); }
 function enterOnline(){
   if (!$("loginP").hidden) { $("loginP").hidden = true; overlay = false; }
   net.want = true; sendHello();
@@ -1002,7 +1047,7 @@ function onAuth(m){
 }
 function applySynced(sv){
   if (!sv) return;
-  ["coins", "tilled", "crops", "up", "pet", "pfood", "quest", "nq", "gift", "farmRows"].forEach(k => { if (sv[k] !== undefined) S[k] = sv[k]; });
+  ["coins", "tilled", "crops", "up", "pet", "pfood", "quest", "nq", "gift", "farmRows", "look"].forEach(k => { if (sv[k] !== undefined) S[k] = sv[k]; });
   farmRowsApply();
   S.inv = Object.assign({}, S.inv, sv.inv || {});
   refreshHud();
@@ -1617,7 +1662,7 @@ function netTick(dt){
   net.st += dt;
   if (playing && net.st > 0.1) { net.st = 0; netSend({ t: "pos", x: Math.round(S.px), y: Math.round(S.py), f: S.face, m: P.moving ? P.frame : 0, r: inHome ? room : "out" }); }
 }
-const drawRemote = p => { drawChar(ctx, Math.round(p.x - camX), Math.round(p.y - camY), p.g, p.f, p.m); label(p.n, p.x - camX, p.y - camY - 22, "#8bd17c"); if (p.sayT > 0) label(p.say, p.x - camX, p.y - camY - 32, "#fff"); };
+const drawRemote = p => { drawChar(ctx, Math.round(p.x - camX), Math.round(p.y - camY), p.g, p.f, p.m, p.look); label(p.n, p.x - camX, p.y - camY - 22, "#8bd17c"); if (p.sayT > 0) label(p.say, p.x - camX, p.y - camY - 32, "#fff"); };
 function renderHome(t){
   const pw = HW * T, ph = HH * T;
   camX = cw >= pw ? -Math.floor((cw - pw) / 2) : Math.round(Math.max(0, Math.min(pw - cw, S.px - cw / 2)));
@@ -1626,7 +1671,7 @@ function renderHome(t){
   ctx.drawImage(room === "shop" ? shopCv : homeCv, -camX, -camY);
   const list = [
     { y: NPC.y, d: () => (room === "shop" ? drawKeeper : drawNpc)(ctx, NPC.x - camX, Math.round(NPC.y - camY + Math.sin(t / 500) * 0.6)) },
-    { y: S.py, d: () => { drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0); drawHeld(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.face); } }
+    { y: S.py, d: () => { drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0, S.look); drawHeld(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.face); } }
   ].concat(Object.values(net.players).filter(p => p.r === room).map(p => ({ y: p.y, d: () => drawRemote(p) }))).sort((a, b) => a.y - b.y);
   list.forEach(o => o.d());
   if (!dlg && !overlay && Math.hypot(S.px - NPC.x, S.py - NPC.y) < 28) label(room === "shop" ? "A: mua bán" : "A: nói chuyện", NPC.x - camX, NPC.y - camY - 24, "#f4c95d");
@@ -1751,6 +1796,7 @@ addEventListener("keydown", e => {
   if (k === "escape" && !$("shop").hidden) closeShop();
   if (k === "escape" && !$("bag").hidden) closeBag();
   if (k === "escape" && !$("dex").hidden) closeDex();
+  if (k === "escape" && !$("lookP").hidden) $("lookX").onclick();
   if (k === "escape" && !$("mshop").hidden) closeMShop();
 });
 addEventListener("keyup", e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === " " || k === "e" || k === "enter") F.hold = false; });
@@ -1941,13 +1987,55 @@ $("clock").onclick = () => { const n = Date.now(); clkN = n - clkT < 1500 ? clkN
 
 /* ----- Menu chọn nhân vật ----- */
 function preview(id, g){
-  const c = $(id).getContext("2d"); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 20, 24); drawChar(c, 10, 22, g, "down", 0);
+  const c = $(id).getContext("2d"); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 20, 24); drawChar(c, 10, 22, g, "down", 0, S.look);
 }
 preview("pvBoy", "boy"); preview("pvGirl", "girl");
 document.querySelectorAll(".char").forEach(b => b.onclick = () => {
   S.gender = b.dataset.g;
   document.querySelectorAll(".char").forEach(o => { const on = o === b; o.classList.toggle("sel", on); o.setAttribute("aria-pressed", on); });
+  lookEditors.forEach(f => f());
 });
+
+/* ===== Chọn ngoại hình, trang phục ===== */
+const LOOK_PAL = {
+  skin: ["#f9d9b6", "#f1c27d", "#e0a96d", "#c68642", "#8d5524", "#5c3a1e"],
+  hair: ["#2a1a10", "#4a2a1c", "#6b4423", "#a0703c", "#d9a441", "#c4262e", "#7b3fa0", "#2f6fb5", "#e8e8e8", "#ff7aa8"],
+  top: ["#3d7be0", "#e8647a", "#4caf50", "#f4c95d", "#9b59b6", "#ff8c1a", "#2b2b2b", "#f3ecd8", "#1fb5a8", "#c4262e"],
+  bottom: ["#2d4a8a", "#8e3b4f", "#3a3a3a", "#6b4423", "#2f6f3a", "#5a3d8a", "#c9a66b", "#1b6b7a"]
+};
+const LOOK_ROWS = [["style", "Kiểu tóc"], ["hair", "Màu tóc"], ["skin", "Màu da"], ["top", "Màu áo"], ["bottom", "Màu quần, váy"]];
+const STYLE_N = ["Ngắn", "Dài", "Mũ lưỡi trai", "Tóc buộc"];
+const lookEditors = [];
+function lookChanged(){
+  preview("pvBoy", "boy"); preview("pvGirl", "girl");
+  const pv = $("lookPv"); if (pv) { const c = pv.getContext("2d"); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 20, 24); drawChar(c, 10, 22, S.gender, "down", 0, S.look); }
+  lookEditors.forEach(f => f());
+  save(); if (net.on) netSend({ t: "look", look: S.look });
+}
+function buildLookEditor(box){
+  const draw = () => {
+    box.innerHTML = ""; const cur = getLook(S.gender, S.look);
+    LOOK_ROWS.forEach(([key, label]) => {
+      const wrap = document.createElement("div"); wrap.className = "lk"; const h = document.createElement("h4"); h.textContent = label; wrap.appendChild(h);
+      const row = document.createElement("div"); row.className = "sw" + (key === "style" ? " st" : "");
+      (key === "style" ? STYLE_N : LOOK_PAL[key]).forEach((v, i) => {
+        const b = document.createElement("button"); b.type = "button";
+        const val = key === "style" ? i : v;
+        if (key === "style") b.textContent = v; else { b.style.background = v; b.setAttribute("aria-label", label + " " + (i + 1)); }
+        if (cur[key] === val) b.className = "on";
+        b.onclick = () => { S.look = Object.assign({}, S.look || {}); S.look[key] = val; lookChanged(); };
+        row.appendChild(b);
+      }); wrap.appendChild(row); box.appendChild(wrap);
+    });
+    const rnd = document.createElement("button"); rnd.className = "go alt"; rnd.style.cssText = "font-size:20px;padding:4px;margin-top:6px"; rnd.textContent = "Ngẫu nhiên";
+    rnd.onclick = () => { const pk = a => a[Math.floor(Math.random() * a.length)]; S.look = { skin: pk(LOOK_PAL.skin), hair: pk(LOOK_PAL.hair), top: pk(LOOK_PAL.top), bottom: pk(LOOK_PAL.bottom), style: Math.floor(Math.random() * 4) }; lookChanged(); };
+    box.appendChild(rnd);
+  };
+  lookEditors.push(draw); draw();
+}
+buildLookEditor($("lookBox")); buildLookEditor($("lookBox2"));
+$("lookBtn").onclick = () => { if (!playing || overlay) return; overlay = true; lookChanged(); $("lookP").hidden = false; };
+$("lookX").onclick = () => { overlay = false; $("lookP").hidden = true; };
 function startGame(){
   if (S.px >= 38 * T) { S.px = 37 * T + 8; S.py = 12 * T + 8; }
   $("menu").hidden = true; ["hud", "joy", "act", "runBtn"].forEach(id => $(id).hidden = false);
@@ -2103,8 +2191,8 @@ function render(t){
     if (F.st === "bite") label("!", bx, by - 6, "#f4c95d");
   }
   const ents = VIL.filter(n => n.on).map(n => ({ y: n.y, d: () => drawVillager(ctx, Math.round(n.x - camX), Math.round(n.y - camY), n.look, n.dir, n.mode === "walk" ? n.fr : 0) }));
-  if (playing) ents.push({ y: S.py, d: () => { drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0); drawHeld(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.face); } });
-  else ents.push({ y: 10 * T, d: () => drawChar(ctx, 11 * T + 8 - camX, 10 * T - camY, "boy", "down", 0) });
+  if (playing) ents.push({ y: S.py, d: () => { drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0, S.look); drawHeld(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.face); } });
+  else ents.push({ y: 10 * T, d: () => drawChar(ctx, 11 * T + 8 - camX, 10 * T - camY, "boy", "down", 0, S.look) });
   if (S.pet && playing && PET.init) ents.push({ y: PET.y, d: () => drawPet(ctx, Math.round(PET.x - camX), Math.round(PET.y - camY), S.pet, PET.fx, PET.fr) });
   Object.values(net.players).filter(p => p.r === "out").forEach(p => ents.push({ y: p.y, d: () => drawRemote(p) }));
   ents.sort((a, b) => a.y - b.y).forEach(o => o.d());
