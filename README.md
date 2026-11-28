@@ -31,6 +31,11 @@ Mã mở khóa chỉ kiểm tra trên client, không an toàn tuyệt đối. Kh
 - Đăng nhập ít nhất một lần, mở **Nhập / Xuất dữ liệu** và sao chép mã. Mã có kèm thông tin đăng nhập đã băm (không phải mật khẩu gốc), đừng gửi cho người lạ.
 - Ở web/máy chủ mới: dán mã, bấm **Nhập từ mã đã dán**, rồi đăng nhập bằng tên và mật khẩu cũ. Máy chủ mới sẽ tự tạo lại tài khoản nếu mật khẩu khớp.
 
+## Túi đồ và cửa hàng
+- Túi đồ chia thành các tab (Dụng cụ, Hạt, Nông sản, Cá, Khác, Thú cưng), mỗi món là một ô có hình và số lượng. Bấm vào ô để xem chi tiết và trang bị.
+- Công cụ có hình riêng, đổi sang bản sắt khi nâng cấp, và hiện trên tay nhân vật (vung lên khi dùng).
+- Ở cửa hàng, mỗi món bán có thanh trượt (và nút -/+) để chọn số lượng muốn bán.
+
 ## Sổ tay
 - Bấm nút **Sổ tay** (hoặc phím B) để xem danh sách các loài cây (thời gian lớn, giá hạt, giá bán...) và các loài cá (tỉ lệ gặp, độ khó, giá bán).
 
