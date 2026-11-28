@@ -97,7 +97,7 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
 <div id="app">
   <canvas id="c"></canvas>
   <div id="hud" hidden>
-    <div class="top"><div class="pill" id="coins">30</div><div class="pill" id="clock">06:00</div><div class="pill" id="wx"></div><button class="pill" id="bagBtn">Túi đồ</button><button class="pill" id="chatBtn">Chat</button><button class="pill" id="musBtn">♪ Nhạc</button><button class="pill" id="accBtn">Tài khoản</button><div class="pill" id="online" hidden></div><div id="stock"></div></div>
+    <div class="top"><div class="pill" id="coins">30</div><div class="pill" id="clock">06:00</div><div class="pill" id="wx"></div><button class="pill" id="bagBtn">Túi đồ</button><button class="pill" id="dexBtn">Sổ tay</button><button class="pill" id="chatBtn">Chat</button><button class="pill" id="musBtn">♪ Nhạc</button><button class="pill" id="accBtn">Tài khoản</button><div class="pill" id="online" hidden></div><div id="stock"></div></div>
     <div class="tools" id="tools"></div>
   </div>
   <div id="joy" hidden><div id="knob"></div></div>
@@ -159,6 +159,13 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
   <section id="loginP" class="screen" hidden>
     <div class="card">
       <div class="shead"><h2>Tài khoản</h2><button id="loginX">Đóng</button></div>
+    </div>
+  </section>
+  <section id="dex" class="screen" hidden>
+    <div class="card">
+      <div class="shead"><h2>Sổ tay</h2><button id="dexX">Đóng</button></div>
+      <div style="display:flex;gap:8px"><button class="go alt" id="dexTabC" style="flex:1;font-size:22px">Cây trồng</button><button class="go alt" id="dexTabF" style="flex:1;font-size:22px">Các loài cá</button></div>
+      <div id="dexList" style="max-height:60vh;overflow-y:auto"></div>
     </div>
   </section>
   <section id="cook" class="screen" hidden>
@@ -1541,11 +1548,13 @@ addEventListener("keydown", e => {
   if (!playing || (e.target && e.target.tagName === "INPUT")) { if (playing && k === "escape") { if (!$("adm").hidden) closeAdm(); if (!$("chat").hidden) closeChat(); } return; }
   if (k === " " || k === "e" || k === "enter") { e.preventDefault(); F.hold = true; act(); }
   if (k === "i") { $("bag").hidden ? openBag() : closeBag(); }
+  if (k === "b") { $("dex").hidden ? openDex() : closeDex(); }
   if (k === "`") openAdm();
   if (k === "t" || k === "/") { e.preventDefault(); openChat(k === "/" ? "/" : ""); }
   if (k >= "1" && k <= "4") selectTool(+k - 1);
   if (k === "escape" && !$("shop").hidden) closeShop();
   if (k === "escape" && !$("bag").hidden) closeBag();
+  if (k === "escape" && !$("dex").hidden) closeDex();
   if (k === "escape" && !$("mshop").hidden) closeMShop();
 });
 addEventListener("keyup", e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === " " || k === "e" || k === "enter") F.hold = false; });
@@ -1615,6 +1624,65 @@ function closeBag(){ overlay = false; $("bag").hidden = true; }
 BAG[0][1].sort((a, b) => ITEMS[a].buy - ITEMS[b].buy);
 SEEDS.sort((a, b) => ITEMS[CROPS[a].seed].buy - ITEMS[CROPS[b].seed].buy);
 $("bagBtn").onclick = openBag;
+/* ===== Sổ tay: thông tin các loài cây và các loài cá ===== */
+const FISH_INFO = {
+  f_roi: { desc: "Cá nước ngọt nhỏ, hay cắn câu nhất, hợp để tập câu." },
+  f_chep: { desc: "Cá chép khỏe và nhanh hơn cá rô, cho giá khá." },
+  f_hoi: { desc: "Cá hồi bơi mạnh, khó giữ trong thanh hơn." },
+  f_vang: { desc: "Cá vàng rất hiếm, bơi cực nhanh và bán được giá cao nhất." },
+  boot: { desc: "Không phải cá: thỉnh thoảng câu trúng giày cũ, gần như vô giá trị." }
+};
+let dexTab = "c";
+function fmtN(n){ return Math.round(n).toLocaleString("vi-VN"); }
+function renderDex(){
+  $("dexTabC").style.outline = dexTab === "c" ? "3px solid var(--gold)" : "none";
+  $("dexTabF").style.outline = dexTab === "f" ? "3px solid var(--gold)" : "none";
+  const box = $("dexList"); box.innerHTML = "";
+  const add = (title, color, lines) => {
+    const row = document.createElement("div"); row.style.cssText = "padding:8px 0;border-bottom:2px solid var(--line)";
+    const h = document.createElement("h3"); h.style.cssText = "font-size:24px;display:flex;align-items:center;gap:8px";
+    const dot = document.createElement("span"); dot.style.cssText = "display:inline-block;width:14px;height:14px;flex:none;background:" + color;
+    h.appendChild(dot); h.appendChild(document.createTextNode(title)); row.appendChild(h);
+    lines.forEach(l => { const d = document.createElement("div"); d.style.cssText = "font-size:15px;opacity:.9;padding:1px 0"; d.textContent = l; row.appendChild(d); });
+    box.appendChild(row);
+  };
+  if (dexTab === "c") {
+    const note = document.createElement("div"); note.style.cssText = "font-size:14px;opacity:.8;padding:4px 0";
+    note.textContent = "Cây lớn qua 3 giai đoạn, mỗi giai đoạn phải được tưới. Cây chưa chín mà khô nước quá " + DRY_LIMIT + " giây sẽ chết. Thời gian tính khi cây được tưới, chưa kể thời tiết.";
+    box.appendChild(note);
+    SEEDS.forEach(k => {
+      const d = CROPS[k], it = ITEMS[d.item], sd = ITEMS[d.seed];
+      const lines = [];
+      lines.push(d.multi ? "Thu hoạch nhiều lần: sau mỗi lần cây lùi về giai đoạn trước, cần tưới để ra quả lại." : "Thu hoạch 1 lần, sau đó cây biến mất.");
+      lines.push("Thời gian lớn: " + d.t + " giây mỗi giai đoạn, khoảng " + (d.t * 3) + " giây từ hạt đến chín" + (d.multi ? "; ra quả lại sau " + d.regrow + " giây." : "."));
+      lines.push("Giá hạt: " + fmtN(sd.buy) + " xu" + (sd.buy >= 100000 ? " (hạt hiếm, cửa hàng ít khi có)." : "."));
+      lines.push("Giá bán: " + fmtN(it.sell) + " xu/" + (it.kg ? "kg" : "quả") + (it.kg ? ". Mỗi quả nặng khoảng 0,5-2 kg." : "."));
+      if (d.multi) lines.push("Sau 5 lần thu hoạch cây thành cây to, mỗi lần cho 3 quả. Cần trồng cách các cây nhiều lần khác 1 ô.");
+      const rc = RECIPES.find(r => r.from === d.item); if (rc) lines.push("Chế biến được thành " + rc.name + " ở bếp (giá bán " + fmtN(ITEMS[rc.to].sell) + " xu/kg).");
+      add(d.n, d.c, lines);
+    });
+  } else {
+    const note = document.createElement("div"); note.style.cssText = "font-size:14px;opacity:.8;padding:4px 0";
+    note.textContent = "Cầm cần câu, đứng bờ nước hướng ra hồ rồi bấm A. Khi cá cắn, giữ A để thanh trắng đuổi theo cá.";
+    box.appendChild(note);
+    const tot = FISH.reduce((a, f) => a + f.w, 0);
+    FISH.slice().sort((a, b) => b.w - a.w).forEach(f => {
+      const it = ITEMS[f.k], info = FISH_INFO[f.k] || {};
+      const lv = f.z >= 0.3 ? "Dễ" : (f.z >= 0.22 ? "Vừa" : (f.z >= 0.17 ? "Khó" : "Rất khó"));
+      const lines = [info.desc || ""];
+      lines.push("Tỉ lệ gặp: khoảng " + Math.round(f.w / tot * 100) + "% mỗi lần cá cắn.");
+      if (f.k !== "boot") lines.push("Độ khó: " + lv + " (vùng bắt " + Math.round(f.z * 100) + "% thanh, tốc độ bơi " + f.sp + ").");
+      lines.push("Giá bán: " + fmtN(it.sell) + " xu.");
+      add(it.n, f.k === "f_vang" ? "#f4c95d" : (f.k === "f_hoi" ? "#e88a7a" : (f.k === "f_chep" ? "#c98b4a" : (f.k === "boot" ? "#8a6a4a" : "#7fb7c9"))), lines);
+    });
+  }
+}
+function openDex(){ if (!playing || overlay) return; overlay = true; $("dex").hidden = false; renderDex(); }
+function closeDex(){ overlay = false; $("dex").hidden = true; }
+$("dexBtn").onclick = openDex; $("dexX").onclick = closeDex;
+$("dexTabC").onclick = () => { dexTab = "c"; renderDex(); };
+$("dexTabF").onclick = () => { dexTab = "f"; renderDex(); };
+
 /* Nút lên/xuống để xem túi đồ: bấm một lần cuộn một đoạn, giữ nút sẽ cuộn liên tục */
 let bagRep = 0;
 function bindHold(id, dy){
