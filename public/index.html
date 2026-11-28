@@ -36,6 +36,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 #knob{position:absolute;left:38px;top:38px;width:48px;height:48px;border-radius:50%;background:var(--leaf);box-shadow:0 0 0 3px var(--shadow)}
 #act{position:absolute;right:calc(26px + env(safe-area-inset-right,0px));bottom:calc(40px + env(safe-area-inset-bottom,0px));
   width:92px;height:92px;border-radius:50%;font-size:40px;background:var(--berry);touch-action:none}
+#runBtn{position:absolute;right:calc(34px + env(safe-area-inset-right,0px));bottom:calc(146px + env(safe-area-inset-bottom,0px));min-width:76px;padding:0 10px;height:44px;font-size:22px;background:var(--panel);color:var(--text);touch-action:none;box-shadow:0 0 0 3px var(--line),0 4px 0 3px var(--shadow)}
+#runBtn.on{background:var(--gold);color:var(--shadow)}
+@media (orientation:landscape) and (max-height:560px){#runBtn{right:calc(22px + env(safe-area-inset-right,0px));bottom:calc(98px + env(safe-area-inset-bottom,0px));min-width:64px;padding:0 8px;height:38px;font-size:20px}}
 #feed{position:absolute;left:14px;bottom:calc(160px + env(safe-area-inset-bottom,0px));max-width:62%;pointer-events:none;display:flex;flex-direction:column;gap:2px;font-size:20px;text-shadow:2px 2px 0 var(--shadow)}
 #chat{position:absolute;left:0;right:0;bottom:0;z-index:6;background:rgba(10,23,18,.92);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -3px 0 var(--line)}
 #chatLog{max-height:30vh;overflow:auto;font-size:20px;margin-bottom:8px}
@@ -48,6 +51,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-o
 .bar{position:relative;height:26px;background:var(--shadow);box-shadow:inset 0 0 0 3px var(--line)}
 #zone{position:absolute;top:3px;bottom:3px;background:#fff}
 #mark{position:absolute;top:0;bottom:0;width:6px;background:var(--gold);box-shadow:0 0 0 2px var(--shadow)}
+#catchCard{position:absolute;z-index:5;left:50%;top:26%;transform:translateX(-50%) scale(.9);text-align:center;background:var(--panel);padding:12px 22px;box-shadow:0 0 0 3px var(--line),0 6px 0 3px var(--shadow);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+#catchCard.show{opacity:1;transform:translateX(-50%) scale(1)}
 #fishUI p{margin:10px 0 0;font-size:19px}
 #dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(166px + env(safe-area-inset-bottom,0px));width:min(92%,420px);box-sizing:border-box;
   background:var(--panel);padding:12px 16px;box-shadow:0 0 0 4px var(--gold),0 8px 0 4px var(--shadow)}
@@ -102,9 +107,11 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
   </div>
   <div id="joy" hidden><div id="knob"></div></div>
   <button id="act" hidden aria-label="Hành động">A</button>
+  <button id="runBtn" hidden aria-label="Chạy">Chạy</button>
   <div id="feed"></div>
   <div id="toast"></div>
-  <div id="fishUI" hidden><div class="bar"><div id="zone"></div><div id="mark"></div></div><div class="bar" style="height:12px;margin-top:8px"><div id="prog" style="position:absolute;left:0;top:3px;bottom:3px;width:35%;background:var(--water)"></div></div><p>Giữ nút A để thanh trắng sang phải, thả ra để sang trái. Giữ cá trong thanh!</p></div>
+  <div id="catchCard"></div>
+  <div id="fishUI" hidden><div id="fishPic" style="display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:22px"></div><div class="bar"><div id="zone"></div><div id="mark"></div></div><div class="bar" style="height:12px;margin-top:8px"><div id="prog" style="position:absolute;left:0;top:3px;bottom:3px;width:35%;background:var(--water)"></div></div><p>Giữ nút A để thanh trắng sang phải, thả ra để sang trái. Giữ cá trong thanh!</p></div>
   <div id="dlg" hidden><b id="dlgName"></b><p id="dlgText"></p><small id="dlgHint"></small></div>
   <section id="menu" class="screen">
     <div class="card">
@@ -190,7 +197,7 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
 </div>
 <section id="dataP" class="screen" hidden>
   <div class="shead"><h2>Dữ liệu game</h2><button id="dataX">Đóng</button></div>
-  <p style="font-size:14px;opacity:.85;padding:0 4px">Xuất mã hoặc file để mang sang trang web hoặc thiết bị khác, rồi nhập lại để chơi tiếp tài khoản cũ.</p>
+  <p style="font-size:14px;opacity:.85;padding:0 4px">Xuất mã hoặc file để mang sang trang web hoặc thiết bị khác, rồi nhập lại để chơi tiếp tài khoản cũ (mã có kèm thông tin đăng nhập đã băm, đừng gửi cho người lạ). Hãy đăng nhập ít nhất một lần trước khi xuất để mã có tài khoản.</p>
   <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 4px"><button class="go" id="dCopy">Sao chép mã</button><button class="go alt" id="dFile">Tải file</button></div>
   <textarea id="dText" rows="6" placeholder="Mã dữ liệu hiện ở đây. Muốn nhập thì dán mã vào đây." style="width:calc(100% - 8px);margin:8px 4px;font:inherit"></textarea>
   <div style="display:flex;gap:6px;flex-wrap:wrap;padding:0 4px"><button class="go alt" id="dImpText">Nhập từ mã đã dán</button><button class="go alt" id="dImpFile">Nhập từ file</button><input type="file" id="dInFile" accept=".json,.txt" hidden></div>
@@ -498,6 +505,9 @@ const ITEMS = {
   f_hoi: {n: "Cá hồi", sell: 50},
   f_vang: {n: "Cá vàng", sell: 120},
   boot: {n: "Giày cũ", sell: 1},
+  f_com: {n: "Cá cơm", sell: 6}, f_rophi: {n: "Cá rô phi", sell: 20}, f_tre: {n: "Cá trê", sell: 35}, f_loc: {n: "Cá lóc", sell: 45},
+  f_dieuhong: {n: "Cá diêu hồng", sell: 40}, f_betta: {n: "Cá xiêm", sell: 150}, f_he: {n: "Cá hề", sell: 220},
+  f_koi: {n: "Cá koi", sell: 500}, f_kiem: {n: "Cá kiếm", sell: 900}, f_map: {n: "Cá mập con", sell: 2000}, f_rong: {n: "Cá rồng", sell: 6000},
   sd_tomato: {n: "Hạt cà chua", buy: 500},
   sd_chili: {n: "Hạt ớt", buy: 3667},
   sd_melon: {n: "Hạt dưa hấu", buy: 1000},
@@ -554,9 +564,14 @@ setInterval(() => { // cập nhật đồng hồ nhập hàng khi đang mở c�
   if (S.shop.at !== before) renderShop(); else $("restockT").textContent = restockText();
 }, 1000);
 const FISH = [
-  { k: "f_roi", w: 46, z: 0.34, sp: 1.1 }, { k: "f_chep", w: 28, z: 0.26, sp: 1.4 },
-  { k: "f_hoi", w: 14, z: 0.2, sp: 1.8 }, { k: "f_vang", w: 4, z: 0.14, sp: 2.3 }, { k: "boot", w: 8, z: 1, sp: 0 }
+  { k: "f_com", w: 30, z: 0.38, sp: 1.0 }, { k: "f_roi", w: 40, z: 0.34, sp: 1.1 }, { k: "f_rophi", w: 22, z: 0.3, sp: 1.3 },
+  { k: "f_chep", w: 24, z: 0.26, sp: 1.4 }, { k: "f_tre", w: 16, z: 0.28, sp: 1.3 }, { k: "f_dieuhong", w: 10, z: 0.26, sp: 1.5 },
+  { k: "f_loc", w: 12, z: 0.24, sp: 1.6 }, { k: "f_hoi", w: 12, z: 0.2, sp: 1.8 }, { k: "f_betta", w: 5, z: 0.16, sp: 2.1 },
+  { k: "f_he", w: 5, z: 0.17, sp: 2.0 }, { k: "f_vang", w: 4, z: 0.14, sp: 2.3 }, { k: "f_koi", w: 3, z: 0.15, sp: 2.2 },
+  { k: "f_kiem", w: 2, z: 0.12, sp: 2.6 }, { k: "f_map", w: 1, z: 0.1, sp: 2.8 }, { k: "f_rong", w: 0.5, z: 0.08, sp: 3.0 },
+  { k: "boot", w: 8, z: 1, sp: 0 }
 ];
+const FISH_KEYS = FISH.filter(f => f.k !== "boot").map(f => f.k);
 const TOOLS = ["hoe", "water", "seed", "rod"], TOOLN = ["Cuốc", "Tưới", "Hạt", "Cần câu"];
 const SEEDS = Object.keys(CROPS).sort((a, b) => 0); // sắp lại theo giá hạt sau khi có bảng vật phẩm
 const SAVE_KEY = "vuoncau_save_v1";
@@ -566,6 +581,7 @@ const S = {
   inv: { sd_carrot: 5, sd_straw: 0, sd_pump: 0, sd_tomato: 0, sd_chili: 0, sd_melon: 0, carrot: 0, straw: 0, pump: 0, tomato: 0, chili: 0, melon: 0, sd_grape: 0, sd_durian: 0, sd_mango: 0, sd_corn: 0, sd_apple: 0, sd_pine: 0, grape: 0, durian: 0, mango: 0, corn: 0, apple: 0, pine: 0, sd_coconut: 0, coconut: 0, sd_custard: 0, custard: 0, sd_orange: 0, sd_lemon: 0, orange: 0, lemon: 0, orange_juice: 0, lemon_juice: 0, mango_jam: 0, coconut_water: 0, f_roi: 0, f_chep: 0, f_hoi: 0, f_vang: 0, boot: 0 },
   tilled: {}, crops: {}, tool: 0, seed: "carrot", px: 11 * T + 8, py: 10 * T, face: "down", day: 0.25, gift: 0, quest: 0, nq: {}, up: {}, pet: null, pfood: 0
 };
+FISH.forEach(f => { if (S.inv[f.k] == null) S.inv[f.k] = 0; });
 const P = { moving: false, frame: 0, ft: 0 };
 const F = { st: "idle", t: 0, tx: 0, ty: 0, fish: null, mark: 0, dir: 1, a: 0, w: 0 };
 let playing = false, overlay = false, toastT = 0, inHome = false;
@@ -588,11 +604,12 @@ function blocked(x, y){
 }
 
 let gateCool = 0;
+const RUN = { on: false }; // nút Chạy: bấm để bật/tắt, hoặc giữ phím Shift
 function movePlayer(ix, iy, dt){
   P.moving = ix !== 0 || iy !== 0;
   if (!P.moving) { P.frame = 0; return; }
   if (F.st !== "idle" && F.st !== "mini") { F.st = "idle"; toast("Bạn đã thu cần câu"); }
-  const len = Math.hypot(ix, iy), sp = 58 * dt;
+  const len = Math.hypot(ix, iy), sp = 58 * dt * (RUN.on || keys.shift ? 1.8 : 1);
   const dx = ix / len * sp, dy = iy / len * sp;
   if (!blocked(S.px + dx, S.py)) S.px += dx;
   if (!blocked(S.px, S.py + dy)) S.py += dy;
@@ -601,7 +618,7 @@ function movePlayer(ix, iy, dt){
   if (!inHome && playing && Math.abs(S.py - (12 * T + 8)) < 9 && Math.abs(S.px - (38 * T + 8)) < 16 && Date.now() - gateCool > 1500) {
     gateCool = Date.now(); useGate();
   }
-  P.ft += dt; if (P.ft > 0.18) { P.ft = 0; P.frame++; }
+  P.ft += dt * (RUN.on || keys.shift ? 1.6 : 1); if (P.ft > 0.18) { P.ft = 0; P.frame++; }
 }
 
 /* ===== Thời tiết: tính theo thời gian nên mọi máy và server cùng một loại (đổi mỗi 2 phút) ===== */
@@ -641,6 +658,72 @@ function growCrops(dt){
   }
 }
 
+
+/* ===== Hình pixel của từng loài cá ===== */
+const FISH_LOOK = {
+  f_roi: { body: "#8a8f4a", belly: "#cdd29a", fin: "#6b6f38", stripe: "#5c6030", len: 14, h: 7, tail: "round" },
+  f_chep: { body: "#c9923f", belly: "#f0d79a", fin: "#a8702a", scale: "#e3b869", len: 16, h: 8, tail: "fork", whisker: true },
+  f_hoi: { body: "#9fb3c4", belly: "#f2a493", fin: "#7f95a8", spots: "#3b4a58", len: 17, h: 7, tail: "fork" },
+  f_vang: { body: "#ff9b1a", belly: "#ffd06a", fin: "#ff7a00", len: 11, h: 8, tail: "fan" },
+  f_com: { body: "#cfd8de", belly: "#ffffff", fin: "#aab6be", band: "#6fa8dc", len: 9, h: 4, tail: "fork" },
+  f_rophi: { body: "#a3949f", belly: "#e6c9c9", fin: "#c56f7a", stripe: "#6e5f6e", len: 14, h: 9, tail: "round" },
+  f_tre: { body: "#4b4f55", belly: "#8a8f95", fin: "#3a3d42", len: 17, h: 6, tail: "round", whisker: true },
+  f_loc: { body: "#5c7a3a", belly: "#c9d49a", fin: "#46602c", stripe: "#2f4220", len: 19, h: 6, tail: "round" },
+  f_dieuhong: { body: "#e8546a", belly: "#ffb3be", fin: "#c63c52", len: 14, h: 9, tail: "round" },
+  f_he: { body: "#ff7f1f", belly: "#ff9a45", fin: "#e66400", band: "#ffffff", len: 11, h: 8, tail: "round" },
+  f_betta: { body: "#2a57c8", belly: "#4a7be8", fin: "#e83a6a", len: 10, h: 5, tail: "fan", bigfin: true },
+  f_koi: { body: "#f4f0e6", belly: "#ffffff", fin: "#ffd9c0", patches: ["#ff6a1a", "#2a2a2a"], len: 17, h: 8, tail: "fork" },
+  f_kiem: { body: "#4a6fa5", belly: "#cfd9e8", fin: "#34507c", len: 16, h: 6, tail: "fork", bill: true },
+  f_map: { body: "#7d8a96", belly: "#f2f4f6", fin: "#5f6b76", len: 20, h: 9, tail: "fork", shark: true },
+  f_rong: { body: "#e0b030", belly: "#f6e08a", fin: "#c2851c", scale: "#fff0a0", len: 22, h: 6, tail: "fan", whisker: true },
+  boot: { boot: true }
+};
+const hash1 = n => ((Math.imul(n | 0, 2654435761) >>> 0) % 100);
+function fishCanvas(k, scale){
+  const cnv = document.createElement("canvas"); cnv.width = 28; cnv.height = 16;
+  cnv.style.cssText = "width:" + Math.round(28 * scale) + "px;height:" + Math.round(16 * scale) + "px;image-rendering:pixelated;flex:none;vertical-align:middle;margin-right:6px";
+  const g = cnv.getContext("2d"), L = FISH_LOOK[k]; if (!L) return cnv;
+  const set = (x, y, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), 1, 1); };
+  if (L.boot) {
+    [[9, 3, 4, 7], [9, 10, 11, 3]].forEach(r => { g.fillStyle = "#7a5230"; g.fillRect(r[0], r[1], r[2], r[3]); });
+    g.fillStyle = "#4a2f18"; g.fillRect(9, 12, 11, 1); g.fillStyle = "#a07040"; g.fillRect(10, 3, 2, 6);
+    g.fillStyle = "#cfcfcf"; g.fillRect(9, 2, 4, 1); return cnv;
+  }
+  const cx = 15, cy = 8, rx = L.len / 2, ry = L.h / 2, tx = Math.round(cx - rx);
+  // đuôi
+  for (let i = 0; i < 5; i++) {
+    const half = L.tail === "fan" ? 1 + i * (L.bigfin ? 1.3 : 0.9) : (L.tail === "round" ? 1 + i * 0.5 : 1 + i * 0.9);
+    if (L.tail === "round" && i > 3) continue;
+    for (let y = -Math.floor(half); y <= Math.floor(half); y++) { if (L.tail === "fork" && i >= 3 && Math.abs(y) < 1) continue; set(tx - i, cy + y, L.fin); }
+  }
+  // vây lưng
+  const dh = L.shark ? 6 : (L.bigfin ? 6 : 3);
+  for (let i = 0; i < 5; i++) for (let y = 0; y < Math.max(1, dh - i * (L.shark ? 1.4 : 0.8)); y++) set(cx - 3 + i + (L.shark ? 1 : 0), cy - ry - y, L.fin);
+  if (L.bigfin) for (let i = 0; i < 5; i++) for (let y = 0; y < 4 - i * 0.6; y++) set(cx - 2 + i, cy + ry + y, L.fin);
+  // thân
+  for (let x = -Math.ceil(rx); x <= Math.ceil(rx); x++) for (let y = -Math.ceil(ry); y <= Math.ceil(ry); y++) {
+    if ((x / rx) * (x / rx) + (y / ry) * (y / ry) > 1) continue;
+    let col = y > ry * 0.35 ? L.belly : L.body;
+    const gx = cx + x, gy = cy + y;
+    if (L.stripe && x % 3 === 0 && Math.abs(y) < ry - 0.4 && y <= ry * 0.35) col = L.stripe;
+    if (L.spots && hash1(gx * 7 + gy * 13) < 12 && y < ry * 0.3) col = L.spots;
+    if (L.scale && (gx + gy) % 3 === 0 && y < ry * 0.4) col = L.scale;
+    if (L.band && (x === Math.round(rx) - 5 || x === 0 || x === -Math.round(rx) + 3)) col = L.band;
+    if (L.patches) { const hv = hash1(Math.floor(gx / 4) * 31 + Math.floor(gy / 3) * 17); if (hv < 34 && y < ry * 0.5) col = L.patches[0]; else if (hv > 84 && y < ry * 0.3) col = L.patches[1]; }
+    set(gx, gy, col);
+  }
+  if (L.band && L.band === "#ffffff") for (let x = -Math.ceil(rx); x <= Math.ceil(rx); x++) for (let y = -Math.ceil(ry); y <= Math.ceil(ry); y++) { // viền đen cho sọc trắng cá hề
+    if ((x / rx) * (x / rx) + (y / ry) * (y / ry) > 1) continue; if (x === Math.round(rx) - 4 || x === 1 || x === -Math.round(rx) + 4) set(cx + x, cy + y, "#2a2a2a");
+  }
+  // vây ngực, mắt, miệng
+  set(cx + 1, cy + 1, L.fin); set(cx, cy + 2, L.fin);
+  const ex = cx + Math.round(rx) - 3; set(ex, cy - 1, "#ffffff"); set(ex + 1, cy - 1, "#111111");
+  set(cx + Math.round(rx) - 1, cy + 1, "#3a2a2a");
+  if (L.whisker) { set(cx + Math.round(rx), cy + 1, L.fin); set(cx + Math.round(rx) + 1, cy + 2, L.fin); set(cx + Math.round(rx), cy + 2, L.fin); }
+  if (L.bill) for (let i = 1; i <= 6; i++) set(cx + Math.round(rx) - 1 + i, cy, "#d8dde4");
+  if (L.shark) { for (let i = 0; i < 4; i++) set(cx + Math.round(rx) - 4 + i, cy + 2, "#ffffff"); }
+  return cnv;
+}
 function pickFish(){
   let tot = 0; FISH.forEach(f => tot += f.w);
   let r = Math.random() * tot;
@@ -648,10 +731,18 @@ function pickFish(){
   return FISH[0];
 }
 function catchFish(f){
-  S.inv[f.k]++; F.st = "idle"; $("fishUI").hidden = true; overlay = false;
-  const it = ITEMS[f.k];
+  S.inv[f.k] = (S.inv[f.k] || 0) + 1; F.st = "idle"; $("fishUI").hidden = true; overlay = false;
+  const it = ITEMS[f.k]; showCatch(f.k);
   toast(f.k === "boot" ? "Câu được một chiếc giày cũ..." : "Câu được " + it.n + "! (" + it.sell + " xu)");
   floatText("+" + it.n, S.px, S.py - 24, "#8be0ff"); refreshHud();
+}
+let catchT = 0;
+function showCatch(k){
+  const box = $("catchCard"); box.innerHTML = "";
+  const c = fishCanvas(k, 8); c.style.margin = "0 auto"; c.style.display = "block"; box.appendChild(c);
+  const n = document.createElement("div"); n.textContent = ITEMS[k].n; n.style.cssText = "font-size:26px;color:var(--gold)"; box.appendChild(n);
+  const v = document.createElement("div"); v.textContent = k === "boot" ? "Rác" : "Giá bán: " + ITEMS[k].sell.toLocaleString("vi-VN") + " xu"; v.style.fontSize = "17px"; box.appendChild(v);
+  box.classList.add("show"); clearTimeout(catchT); catchT = setTimeout(() => box.classList.remove("show"), 2400);
 }
 function updateFishing(dt){
   if (F.st === "wait") { F.t -= dt; if (F.t <= 0) { F.st = "bite"; F.t = 1.1; toast("Cá cắn câu! Bấm A!"); } }
@@ -676,6 +767,8 @@ function fishAction(){
     if (f.k === "boot") { catchFish(f); return true; }
     F.st = "mini"; F.fp = 0.5; F.tg = 0.5; F.ft2 = 0.3; F.bw = 0.12 + f.z * 0.5 + (S.up.rod2 ? 0.1 : 0); F.bp = 0.5 - F.bw / 2; F.bv = 0; F.prog = 0.35;
     $("zone").style.width = (F.bw * 100) + "%"; $("zone").style.left = (F.bp * 100) + "%"; $("mark").style.left = "calc(50% - 3px)"; $("prog").style.width = "35%";
+    const pic = $("fishPic"); pic.innerHTML = ""; pic.appendChild(fishCanvas(f.k, 3));
+    const nm = document.createElement("span"); nm.textContent = ITEMS[f.k].n; pic.appendChild(nm);
     $("fishUI").hidden = false; overlay = true; return true;
   }
   if (F.st === "mini") return true;
@@ -785,7 +878,8 @@ function saveJSON(data, name){
 
 /* ===== Nhập / Xuất dữ liệu bằng mã hoặc file ===== */
 const DATA_PREFIX = "VCG1:";
-function exportObj(){ const o = Object.assign({ gv: 4 }, S); return o; }
+function getCred(){ try { return JSON.parse(localStorage.getItem("vc_cred") || "null"); } catch (e) { return null; } }
+function exportObj(){ const o = Object.assign({ gv: 4 }, S); const c = getCred(); if (c && c.n && c.salt && c.hash) o._acct = c; return o; }
 function encodeSave(obj){ return DATA_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }
 function decodeSave(text){
   let t = String(text || "").replace(/[\u200B-\u200D\u2060\uFEFF\u00A0]/g, " ").trim();
@@ -805,6 +899,7 @@ function importData(raw){
   if (!String(raw || "").trim()) return dataMsg("Hãy dán mã vào ô trước khi nhập.");
   let d; try { d = decodeSave(raw); } catch (e) { return dataMsg("Mã bị thiếu hoặc chép sai (hãy chép đủ cả mã, từ chữ VCG1: đến hết)."); }
   if (!d || typeof d !== "object" || !d.inv) return dataMsg("Dữ liệu không hợp lệ (không có túi đồ).");
+  const acct = d._acct; delete d._acct;
   d = migrateSave(d);
   if (!d || d.gv !== 4) return dataMsg("Dữ liệu từ phiên bản quá cũ, không nhập được.");
   const keepShop = S.shop; // không cho nhập file để đổi kho cửa hàng
@@ -814,7 +909,11 @@ function importData(raw){
   farmRowsApply();
   save(); refreshHud();
   if (net.on && AUTH.name) netSend({ t: "sync", save: S, same: true });
-  dataMsg("Đã nhập dữ liệu. Tiếp tục chơi nhé!");
+  if (acct && acct.n && /^[0-9a-f]{32}$/.test(acct.salt || "") && /^[0-9a-f]{64}$/.test(acct.hash || "")) {
+    try { localStorage.setItem("vc_cred", JSON.stringify({ n: String(acct.n).slice(0, 12), salt: acct.salt, hash: acct.hash })); } catch (e) {}
+    $("acNm").value = String(acct.n).slice(0, 12);
+    dataMsg("Đã nhập dữ liệu và tài khoản \"" + acct.n + "\". Đóng bảng này, nhập mật khẩu cũ rồi bấm Đăng nhập (kể cả trên máy chủ mới).");
+  } else dataMsg("Đã nhập dữ liệu. Tiếp tục chơi nhé!");
 }
 $("btnExport").onclick = openData;
 $("dataX").onclick = () => { $("dataP").hidden = true; };
@@ -850,6 +949,7 @@ function authGo(kind){
   if (!needLink()) return;
   authMsg("Đang kết nối...");
   const msg = { t: kind, n, pw };
+  const cr = getCred(); if (kind === "acc_login" && cr && String(cr.n).toLowerCase() === n.toLowerCase()) msg.imp = { salt: cr.salt, hash: cr.hash };
   if (net.on) netSend(msg); else { AUTH.pend = msg; netConnect(); }
 }
 function goOnline(){
@@ -864,7 +964,7 @@ function enterOnline(){
   net.want = true; sendHello();
   if (!playing) {
     S.px = 40 * T + 8; S.py = 12 * T + 8;
-    $("menu").hidden = true; ["hud", "joy", "act"].forEach(id => $(id).hidden = false);
+    $("menu").hidden = true; ["hud", "joy", "act", "runBtn"].forEach(id => $(id).hidden = false);
     playing = true; refreshHud(); applyMusic();
     toast("Chào " + S.name + "! Bạn đang ở khu online.");
   }
@@ -877,6 +977,7 @@ function onAuth(m){
   }
   if (m.token) AUTH.tok = m.token;
   AUTH.name = m.name;
+  if (m.cred) { try { localStorage.setItem("vc_cred", JSON.stringify({ n: m.name, salt: m.cred.salt, hash: m.cred.hash })); } catch (e) {} }
   localStorage.setItem("vc_tok", AUTH.tok); localStorage.setItem("vc_name", m.name);
   const same = S.owner === m.name;
   S.name = m.name; S.owner = m.name;
@@ -1001,7 +1102,9 @@ function renderShop(){
   // Đang có để bán: sắp theo số tiền bán được, thấp đến cao
   keys.filter(k => !ITEMS[k].buy && S.inv[k] > 0).sort((a, b) => itemValue(a) - itemValue(b)).forEach(k => {
     const it = ITEMS[k], row = document.createElement("div"); row.className = "row";
+    if (FISH_LOOK[k]) row.dataset.fish = k;
     row.innerHTML = "<span>" + priceDot(itemValue(k)) + it.n + " x" + S.inv[k] + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "") + "</span>";
+    if (row.dataset.fish) row.firstChild.prepend(fishCanvas(k, 1.2));
     const b = document.createElement("button"); b.textContent = "Bán " + itemValue(k);
     b.onclick = () => { sellItem(k); refreshHud(); renderShop(); };
     row.appendChild(b); sell.appendChild(row);
@@ -1294,6 +1397,7 @@ const PETN = { dog: "Chó", cat: "Mèo", chick: "Gà" }, STN = ["con", "lớn", 
 const petStage = p => p.exp < 40 ? 0 : p.exp < 120 ? 1 : 2;
 const PET = { x: 0, y: 0, fx: 1, fr: 0, ft: 0, init: false };
 const FOODS = { pfood: [30, 5, "Thức ăn thú"], carrot: [15, 3], straw: [20, 5], pump: [35, 8], f_roi: [25, 6], f_chep: [35, 9], f_hoi: [45, 12], f_vang: [60, 20] };
+FISH_KEYS.forEach(k => { if (!FOODS[k]) { const v = Math.sqrt(ITEMS[k].sell); FOODS[k] = [Math.min(80, Math.round(10 + v * 2)), Math.min(40, Math.round(3 + v / 2))]; } });
 const foodCount = k => k === "pfood" ? S.pfood : S.inv[k];
 function growMsg(p, before){ if (petStage(p) > before) toast(p.name + " đã lớn thành " + PETN[p.t] + " " + STN[petStage(p)] + "!"); }
 function feedPet(k){
@@ -1391,7 +1495,7 @@ function admRun(txt){
     else r = "Không có mã đồ: " + k;
   }
   else if (c === "hat") { SEEDS.forEach(s => S.inv[CROPS[s].seed] += 10); r = "+10 mỗi loại hạt"; }
-  else if (c === "ca") { ["f_roi", "f_chep", "f_hoi", "f_vang"].forEach(k => S.inv[k] += 5); r = "+5 mỗi loại cá"; }
+  else if (c === "ca") { FISH_KEYS.forEach(k => S.inv[k] = (S.inv[k] || 0) + 5); r = "+5 mỗi loại cá"; }
   else if (c === "thu" && PETN[a[1]]) { S.pet = { t: a[1], name: { dog: "Cún", cat: "Mèo", chick: "Gà" }[a[1]], exp: 0, hu: 100, pt: 0 }; PET.init = false; r = "Đã nhận thú cưng: " + PETN[a[1]]; }
   else if (c === "kn" && S.pet && !isNaN(v)) { S.pet.exp = Math.max(0, S.pet.exp + Math.round(v)); r = S.pet.name + ": KN " + S.pet.exp + " (" + STN[petStage(S.pet)] + ")"; }
   else if (c === "no" && S.pet) { S.pet.hu = 100; r = S.pet.name + " đã no"; }
@@ -1528,7 +1632,7 @@ function selectTool(i){
 }
 function refreshHud(){
   $("coins").textContent = S.coins + " xu";
-  const i = S.inv, fish = i.f_roi + i.f_chep + i.f_hoi + i.f_vang;
+  const i = S.inv, fish = FISH_KEYS.reduce((a, k) => a + (i[k] || 0), 0);
   const fruitKg = Object.keys(ITEMS).reduce((a, k) => a + ((ITEMS[k].kg && S.wt && S.wt[k]) || 0), 0);
   $("stock").textContent = "Cà rốt " + i.carrot + " · Dâu " + i.straw + " · Bí " + i.pump + " · Cá " + fish + " · Trái " + round1(fruitKg) + " kg";
   toolEls.forEach((b, k) => { b.classList.toggle("on", k === S.tool); b.setAttribute("aria-pressed", k === S.tool); });
@@ -1570,6 +1674,7 @@ joy.addEventListener("pointerdown", e => { jid = e.pointerId; joy.setPointerCapt
 joy.addEventListener("pointermove", e => { if (e.pointerId === jid) joyMove(e); });
 const joyEnd = e => { if (e.pointerId === jid) { jid = null; jx = jy = 0; knob.style.transform = ""; } };
 joy.addEventListener("pointerup", joyEnd); joy.addEventListener("pointercancel", joyEnd);
+$("runBtn").addEventListener("pointerdown", e => { e.preventDefault(); RUN.on = !RUN.on; $("runBtn").classList.toggle("on", RUN.on); $("runBtn").textContent = RUN.on ? "Chạy: Bật" : "Chạy"; });
 $("act").addEventListener("pointerdown", e => { e.preventDefault(); F.hold = true; act(); });
 ["pointerup", "pointercancel", "blur"].forEach(ev => addEventListener(ev, () => { F.hold = false; }));
 $("shopX").onclick = closeShop; $("sellAll").onclick = sellAll; $("cookX").onclick = closeCook;
@@ -1581,7 +1686,7 @@ function seedIcon(seedKey){
   try { drawCropRaw({ t: cropKey, s: 3, p: 0, w: false, dry: 0, big: false }, 0, 0); } finally { SPR = null; }
   return cnv;
 }
-const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut", "sd_custard", "sd_orange", "sd_lemon"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut", "custard", "orange", "lemon"]], ["Chế biến", ["orange_juice", "lemon_juice", "mango_jam", "coconut_water"]], ["Cá", ["f_roi", "f_chep", "f_hoi", "f_vang"]], ["Khác", ["boot"]]];
+const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut", "sd_custard", "sd_orange", "sd_lemon"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut", "custard", "orange", "lemon"]], ["Chế biến", ["orange_juice", "lemon_juice", "mango_jam", "coconut_water"]], ["Cá", FISH_KEYS], ["Khác", ["boot"]]];
 function renderBag(){
   $("bagCoins").textContent = S.coins;
   const box = $("bagList"); box.innerHTML = ""; let any = false;
@@ -1610,6 +1715,7 @@ function renderBag(){
       const row = document.createElement("div"); row.className = "row";
       const nm = document.createElement("span"); nm.textContent = ITEMS[k].n; const ct = document.createElement("b"); ct.textContent = "x" + S.inv[k] + (ITEMS[k].kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "");
       if (SEEDS.some(x => CROPS[x].seed === k)) row.appendChild(seedIcon(k));
+      if (FISH_LOOK[k]) row.appendChild(fishCanvas(k, 1.5));
       row.appendChild(nm); row.appendChild(ct);
       const sk = SEEDS.find(s => CROPS[s].seed === k);
       if (sk) eq(row, S.seed === sk, "Đang chọn", () => { S.seed = sk; S.tool = 2; refreshHud(); renderBag(); toast("Trang bị: Hạt " + CROPS[sk].n); });
@@ -1626,10 +1732,21 @@ SEEDS.sort((a, b) => ITEMS[CROPS[a].seed].buy - ITEMS[CROPS[b].seed].buy);
 $("bagBtn").onclick = openBag;
 /* ===== Sổ tay: thông tin các loài cây và các loài cá ===== */
 const FISH_INFO = {
-  f_roi: { desc: "Cá nước ngọt nhỏ, hay cắn câu nhất, hợp để tập câu." },
-  f_chep: { desc: "Cá chép khỏe và nhanh hơn cá rô, cho giá khá." },
-  f_hoi: { desc: "Cá hồi bơi mạnh, khó giữ trong thanh hơn." },
-  f_vang: { desc: "Cá vàng rất hiếm, bơi cực nhanh và bán được giá cao nhất." },
+  f_roi: { desc: "Cá nước ngọt nhỏ, hay cắn câu, hợp để tập câu." },
+  f_chep: { desc: "Cá chép khỏe và nhanh hơn cá rô, có râu ở miệng." },
+  f_hoi: { desc: "Cá hồi thân bạc đốm đen, bơi mạnh nên khó giữ trong thanh." },
+  f_vang: { desc: "Cá vàng đuôi xòe rất hiếm, bơi nhanh và bán được giá cao." },
+  f_com: { desc: "Cá cơm bé xíu thân bạc, rất dễ câu nhưng chẳng được bao nhiêu." },
+  f_rophi: { desc: "Cá rô phi mình dày, có sọc tối và vây đỏ." },
+  f_tre: { desc: "Cá trê da trơn màu xám đen, có râu dài." },
+  f_loc: { desc: "Cá lóc mình dài màu xanh rêu, có vằn đậm." },
+  f_dieuhong: { desc: "Cá diêu hồng thân hồng tươi, vây đỏ." },
+  f_betta: { desc: "Cá xiêm thân xanh, vây và đuôi đỏ xòe rộng, bơi rất nhanh." },
+  f_he: { desc: "Cá hề thân cam với những sọc trắng viền đen." },
+  f_koi: { desc: "Cá koi thân trắng với những mảng cam và đen, rất đáng giá." },
+  f_kiem: { desc: "Cá kiếm có mỏ dài nhọn như thanh kiếm, bơi cực nhanh." },
+  f_map: { desc: "Cá mập con thân xám, vây lưng cao, hàm đầy răng. Rất hiếm." },
+  f_rong: { desc: "Cá rồng vảy vàng óng, râu dài, đuôi xòe. Loài hiếm nhất trong hồ." },
   boot: { desc: "Không phải cá: thỉnh thoảng câu trúng giày cũ, gần như vô giá trị." }
 };
 let dexTab = "c";
@@ -1638,11 +1755,11 @@ function renderDex(){
   $("dexTabC").style.outline = dexTab === "c" ? "3px solid var(--gold)" : "none";
   $("dexTabF").style.outline = dexTab === "f" ? "3px solid var(--gold)" : "none";
   const box = $("dexList"); box.innerHTML = "";
-  const add = (title, color, lines) => {
+  const add = (title, color, lines, node) => {
     const row = document.createElement("div"); row.style.cssText = "padding:8px 0;border-bottom:2px solid var(--line)";
     const h = document.createElement("h3"); h.style.cssText = "font-size:24px;display:flex;align-items:center;gap:8px";
     const dot = document.createElement("span"); dot.style.cssText = "display:inline-block;width:14px;height:14px;flex:none;background:" + color;
-    h.appendChild(dot); h.appendChild(document.createTextNode(title)); row.appendChild(h);
+    h.appendChild(node || dot); h.appendChild(document.createTextNode(title)); row.appendChild(h);
     lines.forEach(l => { const d = document.createElement("div"); d.style.cssText = "font-size:15px;opacity:.9;padding:1px 0"; d.textContent = l; row.appendChild(d); });
     box.appendChild(row);
   };
@@ -1673,7 +1790,7 @@ function renderDex(){
       lines.push("Tỉ lệ gặp: khoảng " + Math.round(f.w / tot * 100) + "% mỗi lần cá cắn.");
       if (f.k !== "boot") lines.push("Độ khó: " + lv + " (vùng bắt " + Math.round(f.z * 100) + "% thanh, tốc độ bơi " + f.sp + ").");
       lines.push("Giá bán: " + fmtN(it.sell) + " xu.");
-      add(it.n, f.k === "f_vang" ? "#f4c95d" : (f.k === "f_hoi" ? "#e88a7a" : (f.k === "f_chep" ? "#c98b4a" : (f.k === "boot" ? "#8a6a4a" : "#7fb7c9"))), lines);
+      add(it.n, "", lines, fishCanvas(f.k, 3));
     });
   }
 }
@@ -1712,7 +1829,7 @@ document.querySelectorAll(".char").forEach(b => b.onclick = () => {
 });
 function startGame(){
   if (S.px >= 38 * T) { S.px = 37 * T + 8; S.py = 12 * T + 8; }
-  $("menu").hidden = true; ["hud", "joy", "act"].forEach(id => $(id).hidden = false);
+  $("menu").hidden = true; ["hud", "joy", "act", "runBtn"].forEach(id => $(id).hidden = false);
   playing = true; refreshHud(); applyMusic(); toast("Chào " + S.name + "! Cuốc đất, gieo hạt rồi nhớ tưới nước.");
 }
 $("go").hidden = true; // không còn chế độ offline
