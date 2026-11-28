@@ -27,6 +27,10 @@ Mở `http://localhost:3000` ở hai tab để thấy nhau.
 
 Mã mở khóa chỉ kiểm tra trên client, không an toàn tuyệt đối. Khi chơi online, `/gio` không đổi được giờ chung của server.
 
+## Chuyển tài khoản sang web/máy chủ khác
+- Đăng nhập ít nhất một lần, mở **Nhập / Xuất dữ liệu** và sao chép mã. Mã có kèm thông tin đăng nhập đã băm (không phải mật khẩu gốc), đừng gửi cho người lạ.
+- Ở web/máy chủ mới: dán mã, bấm **Nhập từ mã đã dán**, rồi đăng nhập bằng tên và mật khẩu cũ. Máy chủ mới sẽ tự tạo lại tài khoản nếu mật khẩu khớp.
+
 ## Sổ tay
 - Bấm nút **Sổ tay** (hoặc phím B) để xem danh sách các loài cây (thời gian lớn, giá hạt, giá bán...) và các loài cá (tỉ lệ gặp, độ khó, giá bán).
 
@@ -36,6 +40,12 @@ Mã mở khóa chỉ kiểm tra trên client, không an toàn tuyệt đối. Kh
 - Chủ ô: cuốc, gieo, tưới và thu hoạch. Người khác có thể vào ô của bạn và tưới giúp, nhưng không thu hoạch được.
 - Cây trong vườn chung lớn khi đã được tưới, tính trên server. Trạng thái vườn chung nằm trong bộ nhớ server nên sẽ mất khi server khởi động lại. Ô của bạn được nhận diện theo mã trình duyệt (lưu trong localStorage).
 - Vườn chung chỉ dùng được khi chơi online.
+
+## Nút Chạy
+- Bấm nút **Chạy** (hoặc giữ Shift) để chạy nhanh hơn. Bấm lại để tắt.
+
+## Cá
+- 15 loài cá và giày cũ, mỗi loài có hình pixel riêng, xem trong **Sổ tay**.
 
 ## Cây trồng và cửa hàng
 - Cà rốt, dâu, bí ngô: thu hoạch 1 lần.

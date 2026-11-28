@@ -146,7 +146,7 @@ const all = o => { const s = JSON.stringify(o); wss.clients.forEach(c => { if (c
 const num = (v, lo, hi) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : lo;
 function loginAs(ws, key, tok){
   ws.acc = key;
-  const msg = { t: "auth", ok: true, name: accounts[key].name, save: accounts[key].save };
+  const msg = { t: "auth", ok: true, name: accounts[key].name, save: accounts[key].save, cred: { salt: accounts[key].salt, hash: accounts[key].hash } };
   if (tok) msg.token = tok;
   send(ws, msg);
 }
@@ -172,6 +172,13 @@ wss.on("connection", ws => {
         accounts[k] = { name, salt, hash: hashPw(pw, salt), tok, save: null };
         tokens.set(tok, k); dirty = true;
         return loginAs(ws, k, tok);
+      }
+      // Tài khoản nhập từ máy chủ khác: tạo lại nếu mật khẩu khớp với mã băm trong mã dữ liệu
+      if (!accounts[k] && m.imp && /^[0-9a-f]{32}$/.test(String(m.imp.salt)) && /^[0-9a-f]{64}$/.test(String(m.imp.hash)) && safeEq(hashPw(pw, m.imp.salt), m.imp.hash)) {
+        const tok0 = newToken();
+        accounts[k] = { name, salt: m.imp.salt, hash: m.imp.hash, tok: tok0, save: null };
+        tokens.set(tok0, k); dirty = true;
+        return loginAs(ws, k, tok0);
       }
       const a = accounts[k];
       if (!a || !safeEq(hashPw(pw, a.salt), a.hash)) { ws.fails++; return send(ws, { t: "auth", ok: false, err: "Sai tên hoặc mật khẩu" }); }
