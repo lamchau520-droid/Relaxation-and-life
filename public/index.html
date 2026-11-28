@@ -1366,15 +1366,16 @@ function drawPet(c, x, y, p, fx, fr){
   c.restore();
 }
 /* ===== Lệnh admin ===== */
-const ADMH = "tk: trích xuất tài khoản (online) · xu <n> · do <mã> <n> · hat · ca · thu <dog|cat|chick> · kn <n> · no · gio <0-24> · caylon · tuoi · dat · nangcap\nMã đồ: sd_carrot sd_straw sd_pump carrot straw pump f_roi f_chep f_hoi f_vang boot pfood";
-function openAdm(){ if (!playing || overlay) return; if (net.on && !net.admin) { toast("Cần quyền admin. Gõ /login <mã> trong chat"); return; } overlay = true; $("adm").hidden = false; $("admIn").focus(); }
+const ADMH = "xu <n> · do <mã> <n> · hat · ca · thu <dog|cat|chick> · kn <n> · no · gio <0-24> · caylon · tuoi · dat · nangcap\nMã đồ: sd_carrot sd_straw sd_pump carrot straw pump f_roi f_chep f_hoi f_vang boot pfood";
+let admOn = false; // mở khóa bằng cách gõ /taolagay trong chat
+function openAdm(){ if (!playing || overlay) return; if (!admOn) { toast("Gõ /taolagay trong chat để dùng lệnh"); return; } overlay = true; $("adm").hidden = false; $("admIn").focus(); }
 function closeAdm(){ overlay = false; $("adm").hidden = true; $("admIn").blur(); }
 function admRun(txt){
+  if (!admOn) return "Lệnh đang bị khóa.";
   const a = txt.trim().replace(/^\//, "").split(/\s+/), c = (a[0] || "").toLowerCase(), v = parseFloat(a[1]);
   let r = "Lệnh không hợp lệ. Gõ help.";
   if (c === "help" || c === "") r = ADMH;
   else if (c === "info") r = "Vị trí " + Math.round(S.px) + "," + Math.round(S.py) + " (ô " + Math.floor(S.px / T) + "," + Math.floor(S.py / T) + ") · camera " + camX + "," + camY + " · khung " + cw + "x" + ch + " · bản đồ " + world.width + "x" + world.height + " · ngày " + (S.day || 0).toFixed(2) + " · online " + (net.on ? "có" : "không") + " · trong nhà " + (inHome ? "có" : "không");
-  else if (c === "tk") { if (net.on) { netSend({ t: "acc_export" }); r = "Đang lấy danh sách tài khoản..."; } else r = "Cần online để trích xuất tài khoản"; }
   else if (c === "xu" && !isNaN(v)) { S.coins = Math.max(0, S.coins + Math.round(v)); r = "Xu: " + S.coins; }
   else if (c === "do" && a[1]) {
     const k = a[1], q = parseInt(a[2]) || 1;
@@ -1387,7 +1388,7 @@ function admRun(txt){
   else if (c === "thu" && PETN[a[1]]) { S.pet = { t: a[1], name: { dog: "Cún", cat: "Mèo", chick: "Gà" }[a[1]], exp: 0, hu: 100, pt: 0 }; PET.init = false; r = "Đã nhận thú cưng: " + PETN[a[1]]; }
   else if (c === "kn" && S.pet && !isNaN(v)) { S.pet.exp = Math.max(0, S.pet.exp + Math.round(v)); r = S.pet.name + ": KN " + S.pet.exp + " (" + STN[petStage(S.pet)] + ")"; }
   else if (c === "no" && S.pet) { S.pet.hu = 100; r = S.pet.name + " đã no"; }
-  else if (c === "gio" && !isNaN(v)) { if (net.on) { netSend({ t: "gio", v }); r = "Đã gửi lệnh đổi giờ cho server."; } else { S.day = (((v % 24) + 24) % 24) / 24; r = "Giờ: " + clockText(); } }
+  else if (c === "gio" && !isNaN(v)) { if (net.on) r = "Giờ chung của server, không đổi được khi chơi online."; else { S.day = (((v % 24) + 24) % 24) / 24; r = "Giờ: " + clockText(); } }
   else if (c === "caylon") { for (const k in S.crops) { const o = S.crops[k]; o.s = 3; o.p = 0; o.w = false; } r = "Mọi cây đã chín"; }
   else if (c === "tuoi") { for (const k in S.crops) if (S.crops[k].s < 3) S.crops[k].w = true; r = "Đã tưới mọi cây"; }
   else if (c === "dat") { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (map[y * W + x] === 4 && x < 38) S.tilled[y * W + x] = 1; r = "Đã cuốc toàn bộ đất vườn"; }
@@ -1411,14 +1412,14 @@ function chatSend(){
   const i = $("chatIn"), t = i.value.trim(); i.value = ""; if (!t) return;
   if (t[0] === "/") {
     chatPush("> " + t, "#f4c95d"); const c = t.slice(1).trim().split(/\s+/)[0].toLowerCase();
-    if (c === "login") { if (net.on) netSend({ t: "login", k: t.slice(1).trim().slice(5).trim() }); else chatPush("Đang chơi offline, không cần mã.", "#8be0ff"); }
+    if (c === "taolagay") { admOn = true; chatPush("Đã mở khóa lệnh. Gõ /help xem danh sách.", "#8bd17c"); }
     else if (c === "who") chatPush(net.on ? "Đang online: " + [S.name].concat(Object.values(net.players).map(p => p.n)).join(", ") : "Đang chơi offline.", "#8bd17c");
-    else if (net.on && !net.admin && c !== "help" && c !== "" && c !== "info") chatPush("Cần quyền admin. Gõ /login <mã>", "#e8647a");
+    else if (!admOn) chatPush("Lệnh đang bị khóa.", "#e8647a");
     else chatPush(admRun(t), "#8bd17c");
   } else { chatPush(S.name + ": " + t); floatText(t.slice(0, 24), S.px, S.py - 24, "#fff"); netSend({ t: "chat", m: t }); }
 }
 /* ===== Online (nhiều người chơi) ===== */
-const net = { on: false, ws: null, id: 0, players: {}, day0: 0, t0: 0, admin: false, st: 0, tries: 0, ever: false };
+const net = { on: false, ws: null, id: 0, players: {}, day0: 0, t0: 0, st: 0, tries: 0, ever: false };
 const UID = (() => { try { let u = localStorage.getItem("vuoncau_uid"); if (!u) { u = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem("vuoncau_uid", u); } return u; } catch (e) { return "tmp" + Math.random().toString(36).slice(2); } })();
 const G = { plots: [], mine: -1 };
 function netSend(o){ if (net.on) try { net.ws.send(JSON.stringify(o)); } catch (e) {} }
@@ -1435,13 +1436,13 @@ function netConnect(){
   ws.onopen = () => { net.on = true; net.ever = true; net.tries = 0; if (AUTH.pend) { netSend(AUTH.pend); AUTH.pend = null; } else if (AUTH.tok) netSend({ t: "acc_token", tk: AUTH.tok }); };
   ws.onmessage = ev => { let m; try { m = JSON.parse(ev.data); } catch (e) { return; } netMsg(m); };
   ws.onclose = () => {
-    net.on = false; net.ws = null; net.players = {}; net.admin = false; $("online").hidden = true;
+    net.on = false; net.ws = null; net.players = {}; $("online").hidden = true;
     if (playing && net.tries++ < (net.ever ? 30 : 3)) setTimeout(netConnect, 3000);
   };
   ws.onerror = () => {};
 }
 function netMsg(m){
-  if (m.t === "welcome") { net.id = m.id; net.admin = false; chatPush("Đã vào làng online. Gõ /who xem ai đang chơi.", "#8be0ff"); }
+  if (m.t === "welcome") { net.id = m.id; chatPush("Đã vào làng online. Gõ /who xem ai đang chơi.", "#8be0ff"); }
   else if (m.t === "day") { net.day0 = m.d; net.t0 = performance.now(); }
   else if (m.t === "players") {
     const seen = {};
@@ -1455,12 +1456,10 @@ function netMsg(m){
   else if (m.t === "chat") { const p = net.players[m.id]; chatPush(m.n + ": " + m.m); feedPush(m.n + ": " + m.m); if (p) { p.say = m.m; p.sayT = 5; } }
   else if (m.t === "sys") { chatPush(m.m, "#8be0ff"); feedPush(m.m, "#8be0ff"); }
   else if (m.t === "gardens") { G.plots = m.pl; G.mine = m.pl.findIndex(x => x.m); if (m.farm) { S.tilled = m.farm.tilled || {}; S.crops = m.farm.crops || {}; } }
-  else if (m.t === "acc_dump") saveJSON(m.list, "tai-khoan-" + new Date().toISOString().slice(0, 10) + ".json");
   else if (m.t === "auth") onAuth(m);
   else if (m.t === "synced") applySynced(m.save);
   else if (m.t === "gmsg") { toast(m.m); }
   else if (m.t === "gitem") { addFruit(m.k, m.q, m.kg || 0); refreshHud(); toast("Thu hoạch " + m.n + (m.kg ? " (" + m.kg + " kg)" : "") + " ở Vườn chung!"); }
-  else if (m.t === "login") { net.admin = !!m.ok; chatPush(m.ok ? "Đã mở khóa quyền admin." : "Sai mã admin.", m.ok ? "#8bd17c" : "#e8647a"); }
 }
 function netTick(dt){
   for (const k in net.players) {
