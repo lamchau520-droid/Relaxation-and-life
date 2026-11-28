@@ -6,6 +6,3 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /healthz
-    envVars:
-      - key: ADMIN_KEY
-        sync: false

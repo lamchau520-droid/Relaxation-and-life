@@ -3,7 +3,6 @@ const http = require("http"), fs = require("fs"), path = require("path"), crypto
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 3000;
-const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "accounts.json");
 const PUB = path.join(__dirname, "public");
@@ -145,12 +144,6 @@ const clean = (s, n) => String(s == null ? "" : s).replace(/[\u0000-\u001f<>]/g,
 const send = (ws, o) => { if (ws.readyState === 1) ws.send(JSON.stringify(o)); };
 const all = o => { const s = JSON.stringify(o); wss.clients.forEach(c => { if (c.readyState === 1 && c.p) c.send(s); }); };
 const num = (v, lo, hi) => Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : lo;
-function keyOk(k){
-  if (!ADMIN_KEY) return false;
-  const a = Buffer.from(String(k)), b = Buffer.from(ADMIN_KEY);
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
-}
-
 function loginAs(ws, key, tok){
   ws.acc = key;
   const msg = { t: "auth", ok: true, name: accounts[key].name, save: accounts[key].save };
@@ -159,7 +152,7 @@ function loginAs(ws, key, tok){
 }
 
 wss.on("connection", ws => {
-  ws.p = null; ws.admin = false; ws.acc = null; ws.alive = true; ws.lastChat = 0; ws.fails = 0;
+  ws.p = null; ws.acc = null; ws.alive = true; ws.lastChat = 0; ws.fails = 0;
   ws.on("pong", () => { ws.alive = true; });
   ws.on("error", () => {});
   ws.on("message", raw => {
@@ -235,10 +228,6 @@ wss.on("connection", ws => {
       ws.lastChat = now;
       const s = JSON.stringify({ t: "chat", id: p.id, n: p.n, m: txt });
       wss.clients.forEach(c => { if (c !== ws && c.readyState === 1 && c.p) c.send(s); });
-    } else if (m.t === "login") {
-      if (ws.fails >= 5) return send(ws, { t: "login", ok: false });
-      ws.admin = keyOk(m.k); if (!ws.admin) ws.fails++;
-      send(ws, { t: "login", ok: ws.admin });
     } else if (m.t === "gclaim") {
       if (!ws.acc || !Number.isInteger(m.p) || m.p < 0 || m.p >= PLOTN) return;
       if (plots[m.p]) return send(ws, { t: "gmsg", m: "Ô này đã có chủ rồi" });
@@ -273,18 +262,6 @@ wss.on("connection", ws => {
       }
       else return;
       dirty = true;
-    } else if (m.t === "acc_export") { // chỉ admin: danh sách tài khoản, không có mật khẩu
-      if (!ws.admin) return;
-      const list = Object.keys(accounts).map(k => {
-        const a = accounts[k], sv = a.save || {}, pi = plots.indexOf(k);
-        return { ten: a.name, xu: sv.coins == null ? null : sv.coins, o_dat: pi >= 0 ? pi + 1 : null,
-          so_cay_dang_trong: Object.keys(sv.crops || {}).length, co_du_lieu: !!a.save };
-      });
-      send(ws, { t: "acc_dump", list });
-    } else if (m.t === "gio") {
-      if (!ws.admin || !Number.isFinite(m.v)) return;
-      dayOff = (((m.v % 24) + 24) % 24) / 24 - ((Date.now() - T0) / DAY_MS + 0.25);
-      all({ t: "day", d: dayNow() });
     }
   });
   ws.on("close", () => { if (ws.p) all({ t: "sys", m: ws.p.n + " đã rời làng" }); });
@@ -332,4 +309,4 @@ setInterval(() => { // trạng thái các ô vườn; mỗi người có cờ "m
 setInterval(() => wss.clients.forEach(c => { if (!c.alive) return c.terminate(); c.alive = false; c.ping(); }), 30000);
 
 loadData();
-server.listen(PORT, () => console.log("Vườn Câu Pixel online chạy ở cổng " + PORT + (ADMIN_KEY ? "" : " (chưa đặt ADMIN_KEY: lệnh admin bị khóa khi chơi online)")));
+server.listen(PORT, () => console.log("Vườn Câu Pixel online chạy ở cổng " + PORT));

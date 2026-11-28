@@ -12,21 +12,20 @@ Game làm vườn và câu cá nhiều người chơi. Mọi người thấy nha
 npm install
 npm start
 ```
-Mở `http://localhost:3000` ở hai tab để thấy nhau. Có thể đặt `ADMIN_KEY=matkhau npm start` để thử lệnh admin.
+Mở `http://localhost:3000` ở hai tab để thấy nhau.
 
 ## Đưa lên Render
 1. Tạo repo GitHub và đẩy toàn bộ thư mục này lên.
 2. Vào https://dashboard.render.com → **New → Blueprint** (hoặc **New → Web Service**) và chọn repo.
 3. Nếu dùng Web Service thủ công: Runtime **Node**, Build Command `npm install`, Start Command `npm start`, Health Check Path `/healthz`.
-4. Trong **Environment**, thêm biến `ADMIN_KEY` với mã bí mật của bạn.
-5. Deploy xong, Render cấp link dạng `https://ten-game.onrender.com`. Gửi link này cho bạn bè.
+4. Deploy xong, Render cấp link dạng `https://ten-game.onrender.com`. Gửi link này cho bạn bè.
 
 ## Lệnh trong chat
 - `/who`: xem ai đang online
-- `/login <mã>`: mở khóa lệnh admin (mã là `ADMIN_KEY`)
-- `/help`: danh sách lệnh admin (xu, do, hat, ca, thu, kn, no, gio, caylon, tuoi, dat, nangcap)
+- `/taolagay`: mở khóa lệnh admin (cho đến khi tải lại trang)
+- `/help`: danh sách lệnh admin (xu, do, hat, ca, thu, kn, no, gio, caylon, tuoi, dat, nangcap), dùng được sau khi gõ `/taolagay`
 
-Khi chơi online, lệnh admin bị khóa cho đến khi nhập đúng mã. Nếu không đặt `ADMIN_KEY` thì không ai dùng được lệnh admin. `/gio` đổi giờ chung cho cả server.
+Mã mở khóa chỉ kiểm tra trên client, không an toàn tuyệt đối. Khi chơi online, `/gio` không đổi được giờ chung của server.
 
 ## Vườn chung (online)
 - Từ làng, đi tới cổng gỗ (ở rìa phải làng, ngang hàng với cái ao) và bấm **A** để vào Vườn chung. Bấm lại ở cổng để về làng.
