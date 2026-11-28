@@ -919,7 +919,11 @@ function useGate(){
 }
 function gardenAct(tx, ty){
   if (!net.on) { toast("Cần chơi online để dùng Vườn chung"); return; }
-  if (TOOLS[S.tool] === "rod" && get(tx, ty) === 1) { fishAction(); return; }
+  if (TOOLS[S.tool] === "rod" && get(tx, ty) === 1) {
+    if (F.st === "idle") { F.st = "wait"; F.t = 2 + Math.random() * 3; F.tx = tx; F.ty = ty; toast("Đã thả câu. Chờ cá cắn..."); }
+    else fishAction();
+    return;
+  }
   if (TOOLS[S.tool] === "water" && get(tx, ty) === 1) { fillCan(tx, ty); return; }
   const p = plotAt(tx, ty);
   if (p < 0) { toast("Đi vào trong một ô vườn nhé"); return; }
