@@ -42,7 +42,9 @@ const CROPS_S = {
   apple: { n: "Táo", t: 12, regrow: 10, multi: true, item: "apple", qty: 1 },
   pine: { n: "Dứa", t: 16, item: "pine", qty: 1 },
   coconut: { n: "Dừa", t: 30, regrow: 20, multi: true, item: "coconut", qty: 1 },
-  custard: { n: "Mãng cầu", t: 26, regrow: 22, multi: true, item: "custard", qty: 1 }
+  custard: { n: "Mãng cầu", t: 26, regrow: 22, multi: true, item: "custard", qty: 1 },
+  orange: { n: "Cam", t: 24, regrow: 20, multi: true, item: "orange", qty: 1 },
+  lemon: { n: "Chanh", t: 22, regrow: 18, multi: true, item: "lemon", qty: 1 }
 };
 // Thời tiết: cùng công thức với client
 const WEATHER = [
@@ -58,7 +60,7 @@ function weatherAt(ms){
   let h = Math.imul(slot ^ 0x2545f491, 0x9e3779b1); h ^= h >>> 15; h = Math.imul(h, 0x85ebca6b); h ^= h >>> 13;
   return WEATHER[(h >>> 0) % WEATHER.length];
 }
-const KG_ITEMS = new Set(["grape", "durian", "mango", "apple", "pine", "coconut", "custard", "melon", "tomato"]);
+const KG_ITEMS = new Set(["grape", "durian", "mango", "apple", "pine", "coconut", "custard", "melon", "tomato", "orange", "lemon"]);
 const randKg = n => { let t = 0; for (let i = 0; i < n; i++) t += 0.5 + Math.random() * 1.5; return Math.round(t * 10) / 10; };
 const DRY_LIMIT = 60; // cây chưa được tưới quá 60 giây (khi chưa chín) sẽ chết
 const PLOTN = 8;
@@ -71,6 +73,8 @@ function plotAt(x, y){
 const gardenToVillage = (p, gx, gy) => ({ x: gx - (plotX(p) + 1) + FARM.x0, y: gy - (plotY(p) + 6) + FARM.y0 });
 const villageToGarden = (p, vx, vy) => ({ x: vx - FARM.x0 + plotX(p) + 1, y: vy - FARM.y0 + plotY(p) + 6 });
 const inFarm = (vx, vy) => vx >= FARM.x0 && vx < FARM.x0 + FARM.w && vy >= FARM.y0 && vy < FARM.y0 + FARM.h;
+// luống mở thêm (tối đa 3 hàng) cũng được lưu khi đồng bộ
+const inFarmSave = (vx, vy) => vx >= FARM.x0 && vx < FARM.x0 + FARM.w && vy >= FARM.y0 && vy < FARM.y0 + FARM.h + 3;
 
 /* ===== Dữ liệu: tài khoản, bản lưu, chủ ô vườn ===== */
 let accounts = Object.create(null);   // key (tên chữ thường) -> {name, salt, hash, tok, save}
@@ -112,12 +116,12 @@ function sanitizeSave(s){
   const tilled = {}, crops = {};
   for (const k in (s.tilled || {})) {
     const id = +k, vx = id % W, vy = Math.floor(id / W);
-    if (Number.isInteger(id) && id >= 0 && inFarm(vx, vy) && s.tilled[k]) tilled[id] = 1;
+    if (Number.isInteger(id) && id >= 0 && inFarmSave(vx, vy) && s.tilled[k]) tilled[id] = 1;
   }
   for (const k in (s.crops || {})) {
     const id = +k, c = s.crops[k], vx = id % W, vy = Math.floor(id / W);
-    if (!Number.isInteger(id) || id < 0 || !inFarm(vx, vy) || !c || !CROPS_S[c.t]) continue;
-    crops[id] = { t: c.t, s: Math.max(0, Math.min(3, c.s | 0)), p: Math.max(0, Math.min(999, +c.p || 0)), w: !!c.w, h: Math.max(0, c.h | 0), big: !!c.big, dry: Math.max(0, +c.dry || 0) };
+    if (!Number.isInteger(id) || id < 0 || !inFarmSave(vx, vy) || !c || !CROPS_S[c.t]) continue;
+    crops[id] = { t: c.t, s: Math.max(0, Math.min(3, c.s | 0)), p: Math.max(0, Math.min(999, +c.p || 0)), w: !!c.w, h: Math.max(0, c.h | 0), big: !!c.big, kg: c.kg == null ? null : Math.max(0, +c.kg || 0), dry: Math.max(0, +c.dry || 0) };
   }
   return Object.assign({}, s, { tilled, crops });
 }
@@ -255,12 +259,16 @@ wss.on("connection", ws => {
       if (m.a === "water") { const c = sv.crops[vid]; if (c && !c.w && c.s < 3) { c.w = true; dirty = true; } return; }
       if (!mine) return;
       if (m.a === "hoe") { sv.tilled[vid] = 1; }
-      else if (m.a === "seed") { if (!sv.tilled[vid] || sv.crops[vid] || !CROPS_S[m.seed]) return; sv.crops[vid] = { t: m.seed, s: 0, p: 0, w: false }; }
+      else if (m.a === "seed") {
+        if (!sv.tilled[vid] || sv.crops[vid] || !CROPS_S[m.seed]) return;
+        if ([-W - 1, -W, -W + 1, -1, 1, W - 1, W, W + 1].some(o => sv.crops[vid + o])) return; // trồng cách nhau ít nhất 1 ô
+        sv.crops[vid] = { t: m.seed, s: 0, p: 0, w: false };
+      }
       else if (m.a === "harvest") {
         const c = sv.crops[vid]; if (!c || c.s < 3) return;
         const d = CROPS_S[c.t], yq = (c.big && d.multi) ? 3 : d.qty;
-        send(ws, { t: "gitem", k: d.item, q: yq, n: d.n, kg: KG_ITEMS.has(d.item) ? randKg(yq) : 0 });
-        if (d.multi) { c.s = 2; c.p = 0; c.w = false; c.h = (c.h | 0) + 1; if (c.h >= 5) c.big = true; } else delete sv.crops[vid];
+        send(ws, { t: "gitem", k: d.item, q: yq, n: d.n, kg: KG_ITEMS.has(d.item) ? (c.kg != null ? c.kg : randKg(yq)) : 0 });
+        if (d.multi) { c.s = 2; c.p = 0; c.w = false; c.h = (c.h | 0) + 1; if (c.h >= 5) c.big = true; c.kg = null; } else delete sv.crops[vid];
       }
       else return;
       dirty = true;
@@ -305,7 +313,7 @@ setInterval(() => { // cây lớn trên bản lưu của mọi tài khoản, the
       if (c.w) {
         const d = CROPS_S[c.t], need = (c.h && d.multi) ? d.regrow : d.t;
         c.p += (wv.grow === undefined ? 1 : wv.grow); dirty = true;
-        if (c.p >= need) { c.s++; c.p = 0; c.w = false; }
+        if (c.p >= need) { c.s++; c.p = 0; c.w = false; if (c.s === 3 && KG_ITEMS.has(CROPS_S[c.t].item)) c.kg = randKg((c.big && CROPS_S[c.t].multi) ? 3 : CROPS_S[c.t].qty); }
       }
     }
   }
