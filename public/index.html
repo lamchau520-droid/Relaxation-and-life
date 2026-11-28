@@ -887,8 +887,8 @@ $("btnLogin").onclick = () => authGo("acc_login");
 $("btnReg").onclick = () => authGo("acc_reg");
 $("btnOnline").onclick = goOnline;
 // Đưa khung đăng nhập vào cửa sổ Tài khoản, mở được cả khi đang chơi
-$("loginP").querySelector(".card").appendChild($("acct"));
-$("accBtn").onclick = () => { if (!playing) return; overlay = true; $("loginP").hidden = false; };
+$("menu").appendChild($("acct")); // form đăng nhập nằm trong menu lúc mở game
+$("accBtn").onclick = () => { if (!playing) return; $("loginP").querySelector(".card").appendChild($("acct")); overlay = true; $("loginP").hidden = false; };
 $("loginX").onclick = () => { overlay = false; $("loginP").hidden = true; };
 if (AUTH.tok) { $("btnOnline").hidden = false; $("btnOnline").textContent = AUTH.name ? "Vào khu online (" + AUTH.name + ")" : "Vào khu online"; }
 
