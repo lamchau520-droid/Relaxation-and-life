@@ -261,7 +261,8 @@ wss.on("connection", ws => {
       if (m.a === "hoe") { sv.tilled[vid] = 1; }
       else if (m.a === "seed") {
         if (!sv.tilled[vid] || sv.crops[vid] || !CROPS_S[m.seed]) return;
-        if ([-W - 1, -W, -W + 1, -1, 1, W - 1, W, W + 1].some(o => sv.crops[vid + o])) return; // trồng cách nhau ít nhất 1 ô
+        // chỉ cây thu hoạch nhiều lần cần chỗ: cây 1 lần trồng sát nhau được
+        if (CROPS_S[m.seed].multi && [-W - 1, -W, -W + 1, -1, 1, W - 1, W, W + 1].some(o => sv.crops[vid + o] && CROPS_S[sv.crops[vid + o].t] && CROPS_S[sv.crops[vid + o].t].multi)) return;
         sv.crops[vid] = { t: m.seed, s: 0, p: 0, w: false };
       }
       else if (m.a === "harvest") {
