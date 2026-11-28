@@ -152,13 +152,23 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
     <div class="card">
       <div class="shead"><h2>Túi đồ</h2><button id="bagX">Đóng</button></div>
       <div class="coinline">Xu: <b id="bagCoins">0</b></div>
-      <div id="bagList"></div>
+      <div style="display:flex;gap:8px;justify-content:center;margin:6px 0"><button id="bagUp" class="go alt">▲ Lên</button><button id="bagDown" class="go alt">▼ Xuống</button></div>
+      <div id="bagList" style="max-height:55vh;overflow-y:auto"></div>
+    </div>
+  </section>
+  <section id="cook" class="screen" hidden>
+    <div class="card">
+      <div class="shead"><h2>Bếp chế biến</h2><button id="cookX">Đóng</button></div>
+      <p style="font-size:14px;opacity:.85">Chế biến trái cây thành nước và mứt. Sản phẩm giữ phần kg theo tỉ lệ và bán với giá cao hơn.</p>
+      <div id="cookList"></div>
     </div>
   </section>
   <section id="shop" class="screen" hidden>
     <div class="card">
       <div class="shead"><h2>Cửa hàng</h2><button id="shopX">Đóng</button></div>
       <div id="restockT" style="font-size:14px;opacity:.85;padding:4px 2px"></div>
+      <div class="row" id="farmRow"></div>
+      <div style="font-size:14px;padding:0 2px 4px"><span style="color:#7bd389">●</span> rẻ (dưới 1.000) · <span style="color:#f4c95d">●</span> vừa (dưới 100.000) · <span style="color:#e5484d">●</span> đắt (từ 100.000)</div>
       <div class="coinline">Xu: <b id="shopCoins">0</b></div>
       <h3>Mua hạt giống</h3><div id="buyList"></div>
       <h3>Bán nông sản và cá</h3><div id="sellList"></div>
@@ -187,7 +197,7 @@ const map = new Uint8Array(W * H);
 const deco = new Uint8Array(W * H);
 const get = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? 3 : map[y * W + x];
 const put = (x, y, v) => { if (x >= 0 && y >= 0 && x < W && y < H) map[y * W + x] = v; };
-const SOLID = new Set([1, 3, 7, 8, 9, 10, 11, 12, 13]);
+const SOLID = new Set([1, 3, 7, 8, 9, 10, 11, 12, 13, 14]);
 /* Vườn chung: 8 ô vườn, mỗi ô 6x4 ô đất, nằm ở x 41..74, y 4..20 */
 const PLOTN = 8;
 const plotX = p => 41 + (p % 4) * 13, plotY = p => 3 + ((p / 4) | 0) * 14;
@@ -228,6 +238,7 @@ function plotAt(x, y){
   for (let y = 2; y <= 8; y++) for (let x = 26; x <= 37; x++) { put(x, y, 0); deco[y * W + x] = 0; }
   for (let y = 3; y <= 6; y++) for (let x = 27; x <= 31; x++) put(x, y, 7);
   for (let y = 3; y <= 6; y++) for (let x = 33; x <= 36; x++) put(x, y, 7);
+  put(24, 8, 14); // bếp chế biến ở làng
   /* Khu vườn chung x >= 38: xóa cây ngẫu nhiên, dựng tường, cổng và các ô vườn */
   for (let y = 0; y < H; y++) for (let x = 38; x < W; x++) { put(x, y, 0); deco[y * W + x] = 0; }
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (x >= W - 2 || y < 2 || y >= H - 2) put(x, y, 3);
@@ -262,7 +273,7 @@ const wx = world.getContext("2d");
 function rect(c, col, x, y, w, h){ c.fillStyle = col; c.fillRect(x, y, w, h); }
 function drawTile(x, y, type){
   const r = rng32(x * 131 + y * 17), X = x * T, Y = y * T;
-  const base = {0:"#6bbf59",1:"#3b8fd1",2:"#e3cf8e",3:"#6bbf59",4:"#8a5a3b",5:"#c9a66b",6:"#a0703c",7:"#6bbf59",8:"#6bbf59",9:"#6bbf59",10:"#6bbf59",11:"#6bbf59",12:"#6bbf59",13:"#6bbf59"}[type];
+  const base = {0:"#6bbf59",1:"#3b8fd1",2:"#e3cf8e",3:"#6bbf59",4:"#8a5a3b",5:"#c9a66b",6:"#a0703c",7:"#6bbf59",8:"#6bbf59",9:"#6bbf59",10:"#6bbf59",11:"#6bbf59",12:"#6bbf59",13:"#6bbf59",14:"#6bbf59"}[type];
   rect(wx, base, X, Y, T, T);
   const speck = {0:"#5aaa4a",1:"#4aa0e0",2:"#d3be7c",3:"#5aaa4a",4:"#744a30",5:"#b5935a",6:"#8a5d2f"}[type] || "#5aaa4a";
   for (let i = 0; i < 6; i++) rect(wx, speck, X + ((r() * 15) | 0), Y + ((r() * 15) | 0), 1 + ((r() * 2) | 0), 1);
@@ -275,6 +286,7 @@ function drawTile(x, y, type){
     rect(wx, "#2f7d3c", X + 2, Y + 3, 12, 8); rect(wx, "#2f7d3c", X + 4, Y + 1, 8, 12);
     rect(wx, "#47a152", X + 4, Y + 3, 5, 3); rect(wx, "#47a152", X + 6, Y + 2, 3, 1);
   }
+  if (type === 14) { rect(wx, "#6b6b6b", X + 2, Y + 4, 12, 10); rect(wx, "#3a3a3a", X + 5, Y + 8, 6, 5); rect(wx, "#f4c95d", X + 6, Y + 9, 4, 2); rect(wx, "#8a8a8a", X + 1, Y + 3, 14, 2); }
   if (type === 13) { rect(wx, "#8a5a3b", X + 1, Y + 8, 14, 8); rect(wx, "#6b4423", X + 2, Y + 8, 1, 8); rect(wx, "#6b4423", X + 13, Y + 8, 1, 8); rect(wx, "#f4c95d", X + 4, Y + 10, 8, 3); for (let k = 0; k < 4; k++) rect(wx, k % 2 ? "#f3ecd8" : "#c0562b", X + k * 4, Y + 2, 4, 4); rect(wx, "#c0562b", X, Y + 2, T, 2); }
   if (type === 12) { rect(wx, "#7a5025", X + 2, Y + 4, 2, 12); rect(wx, "#7a5025", X + 12, Y + 4, 2, 12); rect(wx, "#a0703c", X, Y + 2, T, 3); rect(wx, "#f4c95d", X + 5, Y + 7, 6, 4); rect(wx, "#10241f", X + 7, Y + 8, 2, 2); }
   const d = deco[y * W + x];
@@ -452,7 +464,9 @@ const CROPS = {
   apple:  { n: "Táo",     t: 12, regrow: 10, multi: true, c: "#d93a2b", seed: "sd_apple",  item: "apple",  qty: 1 },
   pine:   { n: "Dứa",     t: 16, c: "#e6b800", seed: "sd_pine",   item: "pine",   qty: 1 },
   coconut: { n: "Dừa", t: 30, regrow: 20, multi: true, c: "#6fae3a", seed: "sd_coconut", item: "coconut", qty: 1 },
-  custard: { n: "Mãng cầu", t: 26, regrow: 22, multi: true, c: "#9bc23a", seed: "sd_custard", item: "custard", qty: 1 }
+  custard: { n: "Mãng cầu", t: 26, regrow: 22, multi: true, c: "#9bc23a", seed: "sd_custard", item: "custard", qty: 1 },
+  orange: { n: "Cam", t: 24, regrow: 20, multi: true, c: "#ff8c1a", seed: "sd_orange", item: "orange", qty: 1 },
+  lemon: { n: "Chanh", t: 22, regrow: 18, multi: true, c: "#e8e03a", seed: "sd_lemon", item: "lemon", qty: 1 }
 };
 const ITEMS = {
   sd_carrot: {n: "Hạt cà rốt", buy: 10},
@@ -487,16 +501,28 @@ const ITEMS = {
   sd_coconut: {n: "Hạt dừa", buy: 10000},
   coconut: {n: "Dừa", sell: 16000, kg: true},
   sd_custard: {n: "Hạt mãng cầu", buy: 1000000},
-  custard: {n: "Mãng cầu", sell: 100000, kg: true}
+  custard: {n: "Mãng cầu", sell: 100000, kg: true},
+  sd_orange: { n: "Hạt cam", buy: 336677 }, sd_lemon: { n: "Hạt chanh", buy: 300000 },
+  orange: { n: "Cam", sell: 60000, kg: true }, lemon: { n: "Chanh", sell: 50000, kg: true },
+  orange_juice: { n: "Nước cam", sell: 150000, kg: true }, lemon_juice: { n: "Nước chanh", sell: 130000, kg: true },
+  mango_jam: { n: "Mứt xoài", sell: 30000, kg: true }, coconut_water: { n: "Nước dừa", sell: 40000, kg: true }
 };
 /* Kho hạt giống: mỗi 10 phút nhập lại đầy đủ */
 const RESTOCK_MS = 10 * 60 * 1000;
-const SHOP_STOCK = { sd_carrot: 10, sd_straw: 6, sd_pump: 3, sd_tomato: 6, sd_chili: 4, sd_melon: 2, sd_grape: 4, sd_durian: 2, sd_mango: 2, sd_corn: 8, sd_apple: 3, sd_pine: 3, sd_coconut: 1, sd_custard: 1 };
+const SHOP_STOCK = { sd_carrot: 10, sd_straw: 6, sd_pump: 3, sd_tomato: 6, sd_chili: 4, sd_melon: 2, sd_grape: 4, sd_durian: 2, sd_mango: 2, sd_corn: 8, sd_apple: 3, sd_pine: 3, sd_coconut: 1, sd_custard: 1, sd_orange: 1, sd_lemon: 1 };
+// Hạt cao cấp (giá từ 100.000 xu) rất hiếm: mỗi lần nhập hàng chỉ có 5% cơ hội có 1 hạt
+const PREMIUM_SEEDS = Object.keys(ITEMS).filter(k => ITEMS[k].buy >= 100000);
+const PREMIUM_CHANCE = 0.05;
+function rollStock(){
+  const st = Object.assign({}, SHOP_STOCK);
+  PREMIUM_SEEDS.forEach(k => { st[k] = Math.random() < PREMIUM_CHANCE ? 1 : 0; });
+  return st;
+}
 function shopRefresh(){
   const now = Date.now();
-  if (!S.shop) { S.shop = { st: Object.assign({}, SHOP_STOCK), at: now + RESTOCK_MS }; return; }
+  if (!S.shop) { S.shop = { st: rollStock(), at: now + RESTOCK_MS }; return; }
   if (now >= S.shop.at) {
-    S.shop.st = Object.assign({}, SHOP_STOCK);
+    S.shop.st = rollStock();
     S.shop.at += RESTOCK_MS * (Math.floor((now - S.shop.at) / RESTOCK_MS) + 1);
   }
 }
@@ -514,12 +540,12 @@ const FISH = [
   { k: "f_hoi", w: 14, z: 0.2, sp: 1.8 }, { k: "f_vang", w: 4, z: 0.14, sp: 2.3 }, { k: "boot", w: 8, z: 1, sp: 0 }
 ];
 const TOOLS = ["hoe", "water", "seed", "rod"], TOOLN = ["Cuốc", "Tưới", "Hạt", "Cần câu"];
-const SEEDS = Object.keys(CROPS);
+const SEEDS = Object.keys(CROPS).sort((a, b) => 0); // sắp lại theo giá hạt sau khi có bảng vật phẩm
 const SAVE_KEY = "vuoncau_save_v1";
 
 const S = {
-  gender: "boy", name: "Nông dân", coins: 30, gv: 4, can: 0, wt: {},
-  inv: { sd_carrot: 5, sd_straw: 0, sd_pump: 0, sd_tomato: 0, sd_chili: 0, sd_melon: 0, carrot: 0, straw: 0, pump: 0, tomato: 0, chili: 0, melon: 0, sd_grape: 0, sd_durian: 0, sd_mango: 0, sd_corn: 0, sd_apple: 0, sd_pine: 0, grape: 0, durian: 0, mango: 0, corn: 0, apple: 0, pine: 0, sd_coconut: 0, coconut: 0, sd_custard: 0, custard: 0, f_roi: 0, f_chep: 0, f_hoi: 0, f_vang: 0, boot: 0 },
+  gender: "boy", name: "Nông dân", coins: 30, gv: 4, can: 0, wt: {}, farmRows: 0,
+  inv: { sd_carrot: 5, sd_straw: 0, sd_pump: 0, sd_tomato: 0, sd_chili: 0, sd_melon: 0, carrot: 0, straw: 0, pump: 0, tomato: 0, chili: 0, melon: 0, sd_grape: 0, sd_durian: 0, sd_mango: 0, sd_corn: 0, sd_apple: 0, sd_pine: 0, grape: 0, durian: 0, mango: 0, corn: 0, apple: 0, pine: 0, sd_coconut: 0, coconut: 0, sd_custard: 0, custard: 0, sd_orange: 0, sd_lemon: 0, orange: 0, lemon: 0, orange_juice: 0, lemon_juice: 0, mango_jam: 0, coconut_water: 0, f_roi: 0, f_chep: 0, f_hoi: 0, f_vang: 0, boot: 0 },
   tilled: {}, crops: {}, tool: 0, seed: "carrot", px: 11 * T + 8, py: 10 * T, face: "down", day: 0.25, gift: 0, quest: 0, nq: {}, up: {}, pet: null, pfood: 0
 };
 const P = { moving: false, frame: 0, ft: 0 };
@@ -592,7 +618,7 @@ function growCrops(dt){
     if (c.w) {
       const need = (c.h && d.multi) ? d.regrow : d.t;
       c.p += dt * (S.up.can2 ? 1.3 : 1) * (wv.grow === undefined ? 1 : wv.grow);
-      if (c.p >= need) { c.s++; c.p = 0; c.w = false; }
+      if (c.p >= need) { c.s++; c.p = 0; c.w = false; if (c.s === 3 && ITEMS[d.item] && ITEMS[d.item].kg) c.kg = randomKg((c.big && d.multi) ? 3 : d.qty); }
     }
   }
 }
@@ -649,12 +675,13 @@ function act(){
   if (type === 8 || type === 11) { enterRoom("shop"); return; }
   if (type === 12) { useGate(); return; }
   if (type === 13) { openShop(); return; }
+  if (type === 14) { openCook(); return; }
   if (tx >= 38) { gardenAct(tx, ty); return; }
   const crop = S.crops[id];
   if (crop && crop.s === 3) {
     const d = CROPS[crop.t], yq = (crop.big && d.multi) ? 3 : d.qty;
-    addFruit(d.item, yq, ITEMS[d.item] && ITEMS[d.item].kg ? randomKg(yq) : 0);
-    if (d.multi) { crop.s = 2; crop.p = 0; crop.w = false; crop.h = (crop.h | 0) + 1; if (crop.h >= 5) crop.big = true; } else delete S.crops[id];
+    addFruit(d.item, yq, ITEMS[d.item] && ITEMS[d.item].kg ? (crop.kg != null ? crop.kg : randomKg(yq)) : 0);
+    if (d.multi) { crop.s = 2; crop.p = 0; crop.w = false; crop.h = (crop.h | 0) + 1; if (crop.h >= 5) crop.big = true; crop.kg = null; } else delete S.crops[id];
     toast("Thu hoạch " + d.n + "!"); floatText("+" + d.n, tx * T + 8, ty * T, "#ffe08a"); refreshHud(); return;
   }
   if (tool === "hoe") {
@@ -674,6 +701,7 @@ function act(){
     const d = CROPS[S.seed];
     if (!S.tilled[id]) toast("Hãy cuốc đất trước");
     else if (crop) toast("Ô đất này đã có cây");
+    else if (nearCropVillage(tx, ty)) toast("Trồng cách xa một chút để cây có chỗ lớn");
     else if (S.inv[d.seed] <= 0) toast("Hết hạt " + d.n + ". Mua ở cửa hàng!");
     else { S.inv[d.seed]--; S.crops[id] = { t: S.seed, s: 0, p: 0, w: false }; floatText("Gieo", tx * T + 8, ty * T, "#b8f08a"); refreshHud(); }
   } else if (tool === "rod") {
@@ -688,6 +716,38 @@ setInterval(() => {
   $("wx").textContent = w.n; $("wx").style.color = w.good ? "var(--leaf)" : "var(--berry)";
   if (w.k !== lastWx) { if (lastWx && playing) toast("Thời tiết: " + w.n + ". " + w.text); lastWx = w.k; }
 }, 1000);
+
+/* ===== Mở rộng luống đất ở làng: mỗi lần thêm 10 luống, tối đa 3 lần ===== */
+const FARM_COST = [5000, 20000, 50000];
+function farmRowsApply(){
+  const n = Math.min(FARM_COST.length, S.farmRows || 0);
+  if (n <= 0) return;
+  const bottom = 21 + n; // hàng rào dưới cùng của luống mở rộng
+  for (let y = 21; y <= bottom; y++) for (let x = 5; x <= 16; x++) {
+    const want = (y === bottom || x === 5 || x === 16) ? 9 : 4; // hàng rào hoặc đất trồng
+    if (map[y * W + x] !== want) { put(x, y, want); drawTile(x, y, want); }
+  }
+}
+function renderFarmRow(){
+  const fr = $("farmRow"); if (!fr) return;
+  const n = S.farmRows || 0, full = n >= FARM_COST.length;
+  fr.innerHTML = "";
+  const sp = document.createElement("span");
+  sp.textContent = full ? "Luống đất: đã mở hết" : "Mở thêm 10 luống (" + (n + 1) + "/" + FARM_COST.length + ")";
+  const b = document.createElement("button");
+  b.textContent = full ? "Hết" : "Mở " + FARM_COST[n] + " xu";
+  b.disabled = full; b.onclick = buyFarmRow;
+  fr.appendChild(sp); fr.appendChild(b);
+}
+function buyFarmRow(){
+  const n = S.farmRows || 0;
+  if (n >= FARM_COST.length) return toast("Đã mở hết luống đất");
+  if (S.coins < FARM_COST[n]) return toast("Không đủ xu (cần " + FARM_COST[n] + ")");
+  S.coins -= FARM_COST[n]; S.farmRows = n + 1;
+  farmRowsApply(); refreshHud(); renderShop(); save();
+  toast("Đã mở thêm 10 luống đất!");
+}
+farmRowsApply(); // áp dụng luống đã mở khi tải game
 
 /* ===== Nhạc nền ===== */
 const BGM = $("bgm"); BGM.volume = 0.35;
@@ -722,7 +782,8 @@ function importData(raw){
   if (!d || typeof d !== "object" || !d.inv) return dataMsg("Dữ liệu không hợp lệ.");
   d = migrateSave(d);
   if (!d || d.gv !== 4) return dataMsg("Dữ liệu từ phiên bản quá cũ, không nhập được.");
-  Object.assign(S, d, { inv: Object.assign({}, S.inv, d.inv) });
+  const keepShop = S.shop; // không cho nhập file để đổi kho cửa hàng
+  Object.assign(S, d, { inv: Object.assign({}, S.inv, d.inv), shop: keepShop }); farmRowsApply();
   save(); refreshHud();
   if (net.on && AUTH.name) netSend({ t: "sync", save: S, same: true });
   dataMsg("Đã nhập dữ liệu. Tiếp tục chơi nhé!");
@@ -797,7 +858,8 @@ function onAuth(m){
 }
 function applySynced(sv){
   if (!sv) return;
-  ["coins", "tilled", "crops", "up", "pet", "pfood", "quest", "nq", "gift"].forEach(k => { if (sv[k] !== undefined) S[k] = sv[k]; });
+  ["coins", "tilled", "crops", "up", "pet", "pfood", "quest", "nq", "gift", "farmRows"].forEach(k => { if (sv[k] !== undefined) S[k] = sv[k]; });
+  farmRowsApply();
   S.inv = Object.assign({}, S.inv, sv.inv || {});
   refreshHud();
 }
@@ -814,6 +876,17 @@ $("btnReg").onclick = () => authGo("acc_reg");
 $("btnOnline").onclick = goOnline;
 if (AUTH.tok) { $("btnOnline").hidden = false; $("btnOnline").textContent = AUTH.name ? "Vào khu online (" + AUTH.name + ")" : "Vào khu online"; }
 
+/* Trồng cách nhau ít nhất 1 ô: không có cây ở 8 ô xung quanh */
+const NEAR8 = [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]];
+function nearCropVillage(tx, ty){ return NEAR8.some(([dx, dy]) => S.crops[(ty + dy) * W + tx + dx]); }
+function gardenNear(pl, tx, ty){ return NEAR8.some(([dx, dy]) => { const t = pl.tiles[String((ty + dy) * W + tx + dx)]; return !!(t && t.c); }); }
+/* Hiện số kg của trái đã chín khi người chơi đứng gần (trong vòng 2 ô) */
+function cropKgLabel(c, x, y, px, py){
+  if (c.s !== 3 || c.kg == null) return;
+  const ptx = Math.floor(S.px / T), pty = Math.floor(S.py / T);
+  if (Math.abs(x - ptx) > 2 || Math.abs(y - pty) > 2) return;
+  label(c.kg + " kg", px + 8, py - 4, "#f4e7b0");
+}
 /* ===== Bình tưới: múc nước ở sông/hồ rồi mới tưới được ===== */
 function fillCan(x, y){
   if (S.can >= CAN_MAX) return toast("Bình tưới đã đầy nước");
@@ -858,6 +931,7 @@ function gardenAct(tx, ty){
     const d = CROPS[S.seed];
     if (!(tile && tile.tl)) toast("Hãy cuốc đất trước");
     else if (tile && tile.c) toast("Ô đất này đã có cây");
+    else if (gardenNear(pl, tx, ty)) toast("Trồng cách xa một chút để cây có chỗ lớn");
     else if (S.inv[d.seed] <= 0) toast("Hết hạt " + d.n + ". Mua ở cửa hàng!");
     else { S.inv[d.seed]--; netSend({ t: "gact", p, id, a: "seed", seed: S.seed }); floatText("Gieo", tx * T + 8, ty * T, "#b8f08a"); refreshHud(); }
   } else toast("Câu cá làm ở hồ trong làng");
@@ -866,28 +940,67 @@ function gardenAct(tx, ty){
 /* ===== Cửa hàng ===== */
 function openShop(){ overlay = true; $("shop").hidden = false; renderShop(); }
 function closeShop(){ overlay = false; $("shop").hidden = true; }
+/* Chấm màu theo mức giá: xanh = rẻ, vàng = vừa, đỏ = đắt */
+function priceDot(v){
+  const c = v < 1000 ? "#7bd389" : (v < 100000 ? "#f4c95d" : "#e5484d");
+  return '<span style="color:' + c + '">● </span>';
+}
 function renderShop(){
   shopRefresh(); $("restockT").textContent = restockText();
-  $("shopCoins").textContent = S.coins;
+  $("shopCoins").textContent = S.coins; renderFarmRow();
   const buy = $("buyList"), sell = $("sellList"); buy.innerHTML = ""; sell.innerHTML = "";
-  Object.keys(ITEMS).forEach(k => {
+  const keys = Object.keys(ITEMS);
+  // Hạt giống: sắp theo giá mua, thấp đến cao
+  keys.filter(k => ITEMS[k].buy).sort((a, b) => ITEMS[a].buy - ITEMS[b].buy).forEach(k => {
     const it = ITEMS[k], row = document.createElement("div"); row.className = "row";
-    if (it.buy) {
-      row.innerHTML = "<span>" + it.n + " (có " + S.inv[k] + ", kho " + S.shop.st[k] + ")</span>";
-      const b = document.createElement("button"); b.textContent = "Mua " + it.buy;
-      b.disabled = S.shop.st[k] <= 0;
-      b.onclick = () => { if (S.shop.st[k] <= 0) return toast("Hết hàng, chờ nhập hàng"); if (S.coins >= it.buy) { S.coins -= it.buy; S.inv[k]++; S.shop.st[k]--; refreshHud(); renderShop(); } else toast("Không đủ xu"); };
-      row.appendChild(b); buy.appendChild(row);
-    } else if (S.inv[k] > 0) {
-      row.innerHTML = "<span>" + it.n + " x" + S.inv[k] + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "") + "</span>";
-      const b = document.createElement("button"); b.textContent = "Bán " + itemValue(k);
-      b.onclick = () => { sellItem(k); refreshHud(); renderShop(); };
-      row.appendChild(b); sell.appendChild(row);
-    }
+    row.innerHTML = "<span>" + priceDot(it.buy) + it.n + " (có " + S.inv[k] + ", kho " + S.shop.st[k] + ")</span>";
+    const b = document.createElement("button"); b.textContent = "Mua " + it.buy;
+    b.disabled = S.shop.st[k] <= 0;
+    b.onclick = () => { if (S.shop.st[k] <= 0) return toast("Hết hàng, chờ nhập hàng"); if (S.coins >= it.buy) { S.coins -= it.buy; S.inv[k]++; S.shop.st[k]--; refreshHud(); renderShop(); } else toast("Không đủ xu"); };
+    row.appendChild(b); buy.appendChild(row);
+  });
+  // Đang có để bán: sắp theo số tiền bán được, thấp đến cao
+  keys.filter(k => !ITEMS[k].buy && S.inv[k] > 0).sort((a, b) => itemValue(a) - itemValue(b)).forEach(k => {
+    const it = ITEMS[k], row = document.createElement("div"); row.className = "row";
+    row.innerHTML = "<span>" + priceDot(itemValue(k)) + it.n + " x" + S.inv[k] + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "") + "</span>";
+    const b = document.createElement("button"); b.textContent = "Bán " + itemValue(k);
+    b.onclick = () => { sellItem(k); refreshHud(); renderShop(); };
+    row.appendChild(b); sell.appendChild(row);
   });
   if (!sell.children.length) sell.innerHTML = "<div class='row'><span>Chưa có gì để bán</span></div>";
 }
 const round1 = v => Math.round(v * 10) / 10;
+/* Chế biến: nguyên liệu (kg) biến thành sản phẩm giữ phần kg theo tỉ lệ; sản phẩm có giá/kg cao hơn */
+const RECIPES = [
+  { from: "orange", to: "orange_juice", name: "Nước cam", ratio: 0.8 },
+  { from: "lemon", to: "lemon_juice", name: "Nước chanh", ratio: 0.8 },
+  { from: "mango", to: "mango_jam", name: "Mứt xoài", ratio: 0.6 },
+  { from: "coconut", to: "coconut_water", name: "Nước dừa", ratio: 0.7 }
+];
+function cookRecipe(r){
+  const have = S.inv[r.from] || 0;
+  if (have <= 0) return toast("Chưa có " + ITEMS[r.from].n + " để chế biến");
+  const kgIn = (S.wt && S.wt[r.from] != null) ? S.wt[r.from] : have * 1.25;
+  const kgOut = round1(kgIn * r.ratio);
+  S.inv[r.from] = 0; if (S.wt) S.wt[r.from] = 0;
+  addFruit(r.to, 1, kgOut);
+  toast("Đã chế biến " + r.name + " (" + kgOut + " kg).");
+  refreshHud(); renderCook();
+}
+function renderCook(){
+  const box = $("cookList"); box.innerHTML = "";
+  RECIPES.forEach(r => {
+    const have = S.inv[r.from] || 0, kg = (S.wt && S.wt[r.from]) || 0;
+    const row = document.createElement("div"); row.className = "row";
+    row.innerHTML = "<span>" + r.name + " (từ " + ITEMS[r.from].n + ": " + have + " quả" + (kg ? ", " + round1(kg) + " kg" : "") + ")</span>";
+    const b = document.createElement("button"); b.textContent = "Chế biến";
+    b.disabled = have <= 0;
+    b.onclick = () => cookRecipe(r);
+    row.appendChild(b); box.appendChild(row);
+  });
+}
+function openCook(){ overlay = true; $("cook").hidden = false; renderCook(); }
+function closeCook(){ overlay = false; $("cook").hidden = true; }
 function randomKg(n){ let t = 0; for (let i = 0; i < n; i++) t += 0.5 + Math.random() * 1.5; return round1(t); }
 function addFruit(k, q, kg){ S.inv[k] = (S.inv[k] || 0) + q; S.wt = S.wt || {}; if (kg) S.wt[k] = round1((S.wt[k] || 0) + kg); }
 function itemValue(k){
@@ -1015,6 +1128,7 @@ const VIL = [
   { id: "mit", name: "Bé Mít", sx: 15, sy: 11, b: [13, 9, 19, 13], sp: 28, look: { shirt: "#f2a31b", pants: "#3d7be0", hair: "#2a1a10", kid: 1, hat: "cap", cap: "#e8404f" } },
   { id: "buu", name: "Anh Bưu", sx: 14, sy: 8, b: [10, 8, 22, 9], sp: 20, look: { shirt: "#2f8f83", pants: "#2d4a8a", hair: "#3b2a1c", hat: "cap", cap: "#2f8f83" } },
   { id: "mer", name: "Thương nhân", sx: 20, sy: 11, b: [20, 11, 21, 12], sp: 0, win: [10 / 24, 16 / 24], look: { shirt: "#6a3fa0", pants: "#3a2a5a", hair: "#2a1a10", beard: "#9a9aa8", hat: "cap", cap: "#f4c95d" } },
+  { id: "mer2", name: "Thương nhân", sx: 44, sy: 12, b: [43, 12, 46, 13], sp: 0, win: [10 / 24, 16 / 24], online: true, look: { shirt: "#6a3fa0", pants: "#3a2a5a", hair: "#2a1a10", beard: "#9a9aa8", hat: "cap", cap: "#f4c95d" } },
   { id: "ba", name: "Bác Ba", sx: 29, sy: 8, b: [26, 7, 32, 9], sp: 8, look: { shirt: "#4f7a5a", pants: "#3a3a3a", hair: "#8a8a94", beard: "#c8c8d0", hat: "straw" } },
   { id: "tam", name: "Chị Tâm", sx: 34, sy: 8, b: [32, 7, 37, 9], sp: 10, look: { shirt: "#d46a8a", pants: "#4a3a6a", hair: "#2a1a10", long: 1, hat: "flower" } }
 ];
@@ -1032,7 +1146,7 @@ VIL.forEach(n => { n.dir = "down"; n.fr = 0; n.ft = 0; n.mode = "idle"; n.t = Ma
 function updateVillagers(dt){
   const sl = asleep();
   for (const n of VIL) {
-    const gone = sl || (n.win && (S.day < n.win[0] || S.day >= n.win[1]));
+    const gone = sl || (n.win && (S.day < n.win[0] || S.day >= n.win[1])) || (n.online && !net.on);
     if (gone) { if (n.on && n.win && playing) { toast(n.name + " đã rời làng"); if (!$("mshop").hidden) closeMShop(); } n.on = false; continue; }
     if (!n.on) { spawnNpc(n); if (!inHome && Math.hypot(S.px - n.x, S.py - n.y) < 16) continue; n.on = true; n.mode = "idle"; n.t = 1; if (n.win && playing) toast(n.name + " đã đến làng!"); }
     if (dlg && NPC === n) {
@@ -1087,7 +1201,7 @@ function talkVillager(n){
     if (vtipI % 2 === 0) say(lines); else say([VTIPS[n.id][vtipI++ % VTIPS[n.id].length]]);
     vtipI++; return;
   }
-  if (n.id === "mer") { say(["Chào " + nm + "! Ta là thương nhân rong, mỗi ngày chỉ ghé làng từ 10:00 đến 16:00.", "Ta bán dụng cụ tốt và cả thú cưng. Xem thử nhé!"], openMShop); return; }
+  if (n.id === "mer" || n.id === "mer2") { say(["Chào " + nm + "! Ta là thương nhân rong, mỗi ngày chỉ ghé làng từ 10:00 đến 16:00.", "Ta bán dụng cụ tốt và cả thú cưng. Xem thử nhé!"], openMShop); return; }
   if (n.id === "bay") {
     if (st === 0) say(["Chà, có người mới đến à? Ông là Bảy, câu cá ở đây ba chục năm rồi.", "Cháu đứng gần mặt nước, hướng về hồ rồi bấm A. Cá cắn thì bấm lại thật nhanh.", "Câu được 2 con cá chép mang cho ông, ông trả 120 xu."], () => { q.bay = 1; });
     else if (st === 1) inv.f_chep >= 2 ? say(["Cá chép béo thật! Đây, 120 xu của cháu."], pay(0, "f_chep", 2, 120, 2, "Nhận 120 xu")) : say(["Cháu mới có " + inv.f_chep + " con cá chép. Cần đủ 2 con nhé."]);
@@ -1172,25 +1286,51 @@ function updatePet(dt){
   } else PET.fr = 0;
 }
 function drawPet(c, x, y, p, fx, fr){
-  const st = petStage(p), b = fr % 2 ? 1 : 0, C = { dog: ["#c98b4e", "#7a4a22"], cat: ["#9a9aa6", "#5e5e6c"], chick: ["#ffd84a", "#f2a31b"] }[p.t];
-  rect(c, "rgba(0,0,0,.25)", x - 6 - st, y - 1, 12 + 2 * st, 2);
+  const st = petStage(p), sc = [0.8, 1, 1.25][st], f = fx > 0 ? 1 : -1, lg = fr % 2 ? 1 : 0;
+  const PAL = {
+    dog: { body: "#c98b4e", belly: "#f3d9ae", dark: "#6e4422", eye: "#1a1a1a", nose: "#2a1a10", tongue: "#e8606a", collar: "#e8404f" },
+    cat: { body: "#9a9aa6", belly: "#e8e8ee", dark: "#4a4a58", eye: "#2fd27a", nose: "#e8848c", tongue: "#e8848c", collar: "#4fb8e8" },
+    chick: { body: "#ffd84a", belly: "#fff3b0", dark: "#f2a31b", eye: "#1a1a1a", nose: "#f2a31b", tongue: "#f2a31b", collar: "#e8404f" }
+  }[p.t];
+  const ell = (cx, cy, rx, ry, col) => { c.fillStyle = col; c.beginPath(); c.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); c.fill(); };
+  c.save(); c.translate(x, y); c.scale(sc, sc);
+  ell(0, 0, 7, 2, "rgba(0,0,0,.22)"); // bóng dưới chân
   if (p.t === "chick") {
-    const s = 5 + 2 * st, hs = s >> 1;
-    rect(c, C[0], x - hs, y - s - b, s, s); rect(c, C[1], x + (fx > 0 ? hs : -hs - 2), y - hs - b - 1, 2, 2);
-    rect(c, "#2a1a10", x + (fx > 0 ? 1 : -2), y - s + 1 - b, 1, 1 + (st > 1 ? 1 : 0));
-    rect(c, C[1], x - 1, y - 1, 1, 1); rect(c, C[1], x + 1, y - 1, 1, 1);
-    if (st === 2) rect(c, "#e8404f", x - 1, y - s - 2 - b, 2, 2);
-    return;
+    c.fillStyle = PAL.dark; c.fillRect(-1, -2, 1, 2 + lg); c.fillRect(1, -2, 1, 2 + (1 - lg));
+    ell(0, -5, 4.2, 3.6, PAL.body);
+    ell(-0.5, -4, 2.6, 1.8, PAL.belly);
+    ell(-f * 0.6, -4.5, 1.8, 1.2, PAL.dark);
+    ell(f * 2.2, -6.8, 0.8, 0.9, PAL.eye);
+    c.fillStyle = PAL.dark; c.beginPath(); c.moveTo(f * 3.8, -6.2); c.lineTo(f * 6.2, -5.4); c.lineTo(f * 3.8, -4.4); c.fill();
+    if (st >= 1) ell(0.2, -10, 1.3, 1.3, PAL.collar); // mào nhỏ
+  } else if (p.t === "dog") {
+    c.fillStyle = PAL.dark;
+    c.fillRect(-4, -2, 2, 2 + lg); c.fillRect(-1, -2, 2, 2 + (1 - lg)); c.fillRect(2, -2, 2, 2 + lg); c.fillRect(4, -2, 2, 2 + (1 - lg));
+    ell(-f * 6, -7, 1.2, 2.5, PAL.body); // đuôi
+    ell(0, -5, 6, 3.6, PAL.body);
+    ell(0, -3.8, 4.2, 1.9, PAL.belly);
+    c.fillStyle = PAL.collar; c.fillRect(f * 1.5 - 1.5, -8.6, 3, 1.2);
+    ell(f * 4.8, -10.2, 3.4, 3.2, PAL.body); // đầu
+    ell(f * 7.4, -8.6, 2.2, 1.6, PAL.belly); // mõm
+    ell(f * 2.6, -12.4, 1.5, 2.6, PAL.dark); // tai cụp
+    ell(f * 4.8, -10.6, 0.8, 0.9, PAL.eye);
+    ell(f * 9, -8.8, 0.9, 0.8, PAL.nose);
+    if (lg) ell(f * 8, -6.4, 0.8, 1.2, PAL.tongue);
+  } else {
+    c.fillStyle = PAL.dark; c.fillRect(-3, -2, 1, 2 + lg); c.fillRect(-1, -2, 1, 2 + (1 - lg)); c.fillRect(1, -2, 1, 2 + lg); c.fillRect(3, -2, 1, 2 + (1 - lg));
+    c.strokeStyle = PAL.body; c.lineWidth = 1.4; c.beginPath(); c.moveTo(-f * 5, -4); c.lineTo(-f * 8, -7); c.lineTo(-f * 8, -10); c.stroke(); // đuôi
+    ell(0, -5, 5, 3, PAL.body);
+    ell(0, -4, 3.4, 1.6, PAL.belly);
+    c.fillStyle = PAL.collar; c.fillRect(f * 2.5 - 1, -7.6, 2.4, 1);
+    ell(f * 4.5, -9.5, 3.2, 3, PAL.body); // đầu
+    c.fillStyle = PAL.body; c.beginPath(); c.moveTo(f * 2.2, -11.4); c.lineTo(f * 3.4, -14.2); c.lineTo(f * 4.6, -11.6); c.fill(); // tai
+    c.beginPath(); c.moveTo(f * 4.6, -11.6); c.lineTo(f * 5.8, -14.2); c.lineTo(f * 7, -11.2); c.fill();
+    ell(f * 4.1, -9.6, 0.9, 1.1, PAL.eye); ell(f * 6.4, -9.6, 0.9, 1.1, PAL.eye);
+    ell(f * 7.4, -8.1, 0.6, 0.5, PAL.nose);
+    c.strokeStyle = "#f2f2f2"; c.lineWidth = 0.4; c.beginPath();
+    c.moveTo(f * 7.5, -8.4); c.lineTo(f * 10.5, -9); c.moveTo(f * 7.5, -7.6); c.lineTo(f * 10.5, -7.2); c.stroke();
   }
-  const w = 6 + 2 * st, h = 3 + st, hs = 4 + st, hw = w >> 1, hx = fx > 0 ? x + hw - 1 : x - hw - hs + 1, hy = y - 2 - h - hs + 2 - b;
-  rect(c, C[1], x - hw + 1 + b, y - 2, 1, 2); rect(c, C[1], x + hw - 2 - b, y - 2, 1, 2);
-  rect(c, C[0], x - hw, y - 2 - h - b, w, h);
-  const tx = fx > 0 ? x - hw - 2 : x + hw;
-  if (p.t === "cat") rect(c, C[1], tx, y - 2 - h - 3 - b, 2, 4); else rect(c, C[1], tx, y - 2 - h - 1 - b, 2, 1);
-  rect(c, C[0], hx, hy, hs, hs);
-  if (p.t === "dog") rect(c, C[1], hx + (fx > 0 ? hs - 1 : 0), hy + 1, 1, 3);
-  else { rect(c, C[0], hx, hy - 1, 1, 1); rect(c, C[0], hx + hs - 1, hy - 1, 1, 1); }
-  rect(c, "#2a1a10", fx > 0 ? hx + hs - 2 : hx + 1, hy + 1, 1, 1); rect(c, "#2a1a10", fx > 0 ? hx + hs - 1 : hx, hy + hs - 2, 1, 1);
+  c.restore();
 }
 /* ===== Lệnh admin ===== */
 const ADMH = "tk: trích xuất tài khoản (online) · xu <n> · do <mã> <n> · hat · ca · thu <dog|cat|chick> · kn <n> · no · gio <0-24> · caylon · tuoi · dat · nangcap\nMã đồ: sd_carrot sd_straw sd_pump carrot straw pump f_roi f_chep f_hoi f_vang boot pfood";
@@ -1200,6 +1340,7 @@ function admRun(txt){
   const a = txt.trim().replace(/^\//, "").split(/\s+/), c = (a[0] || "").toLowerCase(), v = parseFloat(a[1]);
   let r = "Lệnh không hợp lệ. Gõ help.";
   if (c === "help" || c === "") r = ADMH;
+  else if (c === "info") r = "Vị trí " + Math.round(S.px) + "," + Math.round(S.py) + " (ô " + Math.floor(S.px / T) + "," + Math.floor(S.py / T) + ") · camera " + camX + "," + camY + " · khung " + cw + "x" + ch + " · bản đồ " + world.width + "x" + world.height + " · ngày " + (S.day || 0).toFixed(2) + " · online " + (net.on ? "có" : "không") + " · trong nhà " + (inHome ? "có" : "không");
   else if (c === "tk") { if (net.on) { netSend({ t: "acc_export" }); r = "Đang lấy danh sách tài khoản..."; } else r = "Cần online để trích xuất tài khoản"; }
   else if (c === "xu" && !isNaN(v)) { S.coins = Math.max(0, S.coins + Math.round(v)); r = "Xu: " + S.coins; }
   else if (c === "do" && a[1]) {
@@ -1239,7 +1380,7 @@ function chatSend(){
     chatPush("> " + t, "#f4c95d"); const c = t.slice(1).trim().split(/\s+/)[0].toLowerCase();
     if (c === "login") { if (net.on) netSend({ t: "login", k: t.slice(1).trim().slice(5).trim() }); else chatPush("Đang chơi offline, không cần mã.", "#8be0ff"); }
     else if (c === "who") chatPush(net.on ? "Đang online: " + [S.name].concat(Object.values(net.players).map(p => p.n)).join(", ") : "Đang chơi offline.", "#8bd17c");
-    else if (net.on && !net.admin && c !== "help" && c !== "") chatPush("Cần quyền admin. Gõ /login <mã>", "#e8647a");
+    else if (net.on && !net.admin && c !== "help" && c !== "" && c !== "info") chatPush("Cần quyền admin. Gõ /login <mã>", "#e8647a");
     else chatPush(admRun(t), "#8bd17c");
   } else { chatPush(S.name + ": " + t); floatText(t.slice(0, 24), S.px, S.py - 24, "#fff"); netSend({ t: "chat", m: t }); }
 }
@@ -1390,8 +1531,16 @@ const joyEnd = e => { if (e.pointerId === jid) { jid = null; jx = jy = 0; knob.s
 joy.addEventListener("pointerup", joyEnd); joy.addEventListener("pointercancel", joyEnd);
 $("act").addEventListener("pointerdown", e => { e.preventDefault(); F.hold = true; act(); });
 ["pointerup", "pointercancel", "blur"].forEach(ev => addEventListener(ev, () => { F.hold = false; }));
-$("shopX").onclick = closeShop; $("sellAll").onclick = sellAll;
-const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut", "sd_custard"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut", "custard"]], ["Cá", ["f_roi", "f_chep", "f_hoi", "f_vang"]], ["Khác", ["boot"]]];
+$("shopX").onclick = closeShop; $("sellAll").onclick = sellAll; $("cookX").onclick = closeCook;
+function seedIcon(seedKey){
+  const cropKey = Object.keys(CROPS).find(c => CROPS[c].seed === seedKey);
+  const cnv = document.createElement("canvas"); cnv.width = 16; cnv.height = 16;
+  cnv.style.width = "32px"; cnv.style.height = "32px"; cnv.style.imageRendering = "pixelated"; cnv.style.marginRight = "8px"; cnv.style.flex = "0 0 auto";
+  SPR = cnv.getContext("2d");
+  try { drawCropRaw({ t: cropKey, s: 3, p: 0, w: false, dry: 0, big: false }, 0, 0); } finally { SPR = null; }
+  return cnv;
+}
+const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut", "sd_custard", "sd_orange", "sd_lemon"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut", "custard", "orange", "lemon"]], ["Chế biến", ["orange_juice", "lemon_juice", "mango_jam", "coconut_water"]], ["Cá", ["f_roi", "f_chep", "f_hoi", "f_vang"]], ["Khác", ["boot"]]];
 function renderBag(){
   $("bagCoins").textContent = S.coins;
   const box = $("bagList"); box.innerHTML = ""; let any = false;
@@ -1419,6 +1568,7 @@ function renderBag(){
     have.forEach(k => {
       const row = document.createElement("div"); row.className = "row";
       const nm = document.createElement("span"); nm.textContent = ITEMS[k].n; const ct = document.createElement("b"); ct.textContent = "x" + S.inv[k] + (ITEMS[k].kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "");
+      if (SEEDS.some(x => CROPS[x].seed === k)) row.appendChild(seedIcon(k));
       row.appendChild(nm); row.appendChild(ct);
       const sk = SEEDS.find(s => CROPS[s].seed === k);
       if (sk) eq(row, S.seed === sk, "Đang chọn", () => { S.seed = sk; S.tool = 2; refreshHud(); renderBag(); toast("Trang bị: Hạt " + CROPS[sk].n); });
@@ -1429,7 +1579,20 @@ function renderBag(){
 }
 function openBag(){ if (!playing || overlay) return; overlay = true; $("bag").hidden = false; renderBag(); }
 function closeBag(){ overlay = false; $("bag").hidden = true; }
-$("bagBtn").onclick = openBag; $("bagX").onclick = closeBag; $("mshopX").onclick = closeMShop;
+// Hạt giống trong túi đồ và khi đổi hạt: sắp từ giá thấp đến cao
+BAG[0][1].sort((a, b) => ITEMS[a].buy - ITEMS[b].buy);
+SEEDS.sort((a, b) => ITEMS[CROPS[a].seed].buy - ITEMS[CROPS[b].seed].buy);
+$("bagBtn").onclick = openBag;
+/* Nút lên/xuống để xem túi đồ: bấm một lần cuộn một đoạn, giữ nút sẽ cuộn liên tục */
+let bagRep = 0;
+function bindHold(id, dy){
+  const b = $(id);
+  const step = () => { $("bagList").scrollTop += dy; };
+  const stop = () => clearInterval(bagRep);
+  b.addEventListener("pointerdown", () => { step(); clearInterval(bagRep); bagRep = setInterval(step, 120); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, stop));
+}
+bindHold("bagUp", -120); bindHold("bagDown", 120); $("bagX").onclick = closeBag; $("mshopX").onclick = closeMShop;
 $("admX").onclick = closeAdm;
 $("chatBtn").onclick = () => openChat(""); $("chatX").onclick = closeChat; $("chatGo").onclick = chatSend;
 $("chatIn").addEventListener("keydown", e => { if (e.key === "Enter") chatSend(); });
@@ -1454,19 +1617,98 @@ function startGame(){
 }
 $("go").onclick = () => { S.name = $("nm").value.trim() || "Nông dân"; startGame(); };
 const old = migrateSave(loadSave());
-if (old) { $("cont").hidden = false; $("cont").onclick = () => { Object.assign(S, old, { inv: Object.assign({}, S.inv, old.inv) }); startGame(); }; }
+if (old) { $("cont").hidden = false; $("cont").onclick = () => { Object.assign(S, old, { inv: Object.assign({}, S.inv, old.inv) }); farmRowsApply(); startGame(); }; }
 
 /* ----- Vẽ ----- */
+/* Phóng to cây cho dễ nhìn: cây ăn trái to hơn cây thường */
 function drawCrop(c, x, y){
-  const d = CROPS[c.t], g = "#3f9f45", g2 = "#2f7d3c";
-  if (c.big && c.s === 3) { rect(ctx, g2, x + 1, y, 14, 3); rect(ctx, g, x, y + 1, 16, 2); rect(ctx, g2, x + 6, y + 13, 4, 3); }
-  if (c.s === 0) { rect(ctx, g, x + 7, y + 9, 2, 3); }
-  else if (c.s === 1) { rect(ctx, g, x + 7, y + 6, 2, 6); rect(ctx, g2, x + 5, y + 6, 2, 2); rect(ctx, g2, x + 9, y + 7, 2, 2); }
-  else if (c.s === 2) { rect(ctx, g2, x + 4, y + 5, 8, 7); rect(ctx, g, x + 5, y + 4, 6, 6); }
-  else if (c.t === "carrot") { rect(ctx, g, x + 5, y + 3, 6, 5); rect(ctx, d.c, x + 6, y + 8, 4, 4); rect(ctx, d.c, x + 7, y + 12, 2, 2); }
-  else if (c.t === "straw") { rect(ctx, g2, x + 3, y + 4, 10, 8); rect(ctx, d.c, x + 4, y + 6, 3, 3); rect(ctx, d.c, x + 9, y + 5, 3, 3); rect(ctx, d.c, x + 7, y + 9, 3, 3); }
-  else { rect(ctx, g, x + 7, y + 2, 2, 3); rect(ctx, d.c, x + 3, y + 5, 10, 8); rect(ctx, "#d78512", x + 7, y + 5, 2, 8); }
-  if (c.s < 3 && !c.w) { rect(ctx, "#8be0ff", x + 13, y + 1, 2, 2); }
+  const sc = TREE_CROPS.includes(c.t) ? 1.6 : 1.35, cx = x + 8, base = y + 14;
+  ctx.save(); ctx.translate(cx, base); ctx.scale(sc, sc); ctx.translate(-cx, -base);
+  drawCropRaw(c, x, y);
+  ctx.restore();
+}
+/* Hình cây và trái theo loại: cây ăn trái có tán, cây leo có chùm, cây thân bò có quả to... */
+// Kích thước quả theo số kg: quả càng nặng vẽ càng to (không giới hạn số cỡ, chỉ chặn để không tràn ô)
+let FSC = 1;
+function fruitScale(c){
+  if (c.kg == null) return 1;
+  const per = c.kg / (c.big ? 3 : 1); // kg trung bình của mỗi quả
+  return Math.max(0.6, Math.min(1.6, 0.7 + (per - 0.5) * (0.8 / 1.5)));
+}
+const TREE_CROPS = ["orange", "lemon", "mango", "apple", "durian", "coconut", "custard"];
+const BUSH_CROPS = ["tomato", "chili", "straw"];
+let SPR = null; // canvas tạm để vẽ biểu tượng hạt giống
+function blob(x, y, r, col){ const g = SPR || ctx; g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }
+function ell(x, y, rx, ry, col){ const g = SPR || ctx; g.fillStyle = col; g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); g.fill(); }
+function drawCropRaw(c, x, y){
+  const g = SPR || ctx;
+  const k = c.t, s = c.s; FSC = fruitScale(c);
+  const wilt = (c.dry || 0) >= 30; // khô lâu thì lá úa
+  const leaf = wilt ? "#b5a642" : "#4fae4a"; // lá luôn xanh, màu riêng chỉ dành cho quả
+  const leafDark = wilt ? "#8c7a2a" : "#2f7d3c";
+  const cx = x + 8, base = y + 14;
+  if (s === 0) { // hạt vừa nảy mầm
+    rect(g, "#5aa04a", cx - 1, base - 2, 2, 2); rect(g, "#7fd16a", cx - 2, base - 4, 2, 2); rect(g, "#7fd16a", cx, base - 5, 2, 2);
+    return;
+  }
+  if (TREE_CROPS.includes(k)) drawTreeCrop(k, s, cx, base, leaf, leafDark, c.big);
+  else if (BUSH_CROPS.includes(k)) drawBushCrop(k, s, cx, base, leaf, leafDark);
+  else if (k === "grape") drawGrapeCrop(s, cx, base, leaf, leafDark);
+  else drawGroundCrop(k, s, cx, base, leaf, leafDark);
+}
+function drawTreeCrop(k, s, cx, base, leaf, leafDark, big){
+  const g = SPR || ctx;
+  const r = [0, 2.5, 3.8, 5][s];
+  rect(g, "#7a5025", cx - 1, base - 4, 2, 4);
+  blob(cx, base - 6, r, leaf); blob(cx - 1, base - 7, r * 0.6, leafDark);
+  if (big) { blob(cx - 4, base - 5, r * 0.6, leaf); blob(cx + 4, base - 5, r * 0.6, leaf); }
+  if (s < 3) return;
+  const P = [[cx - 3, base - 8], [cx + 3, base - 7], [cx, base - 3], [cx - 4, base - 4]];
+  for (let i = 0; i < (big ? 4 : 3); i++) {
+    const px = P[i][0], py = P[i][1];
+    if (k === "orange") blob(px, py, 1.9 * FSC, "#ff8c1a");
+    else if (k === "apple") { blob(px, py, 2 * FSC, "#d93a2b"); rect(g, "#5a3a1a", px, py - 3, 1, 1); }
+    else if (k === "lemon") ell(px, py, 2.3 * FSC, 1.6 * FSC, "#f5d742");
+    else if (k === "mango") ell(px, py, 1.8 * FSC, 2.6 * FSC, "#ffb020");
+    else if (k === "durian") { ell(px, py, 2.2 * FSC, 2.8 * FSC, "#b5a642"); rect(g, "#4a4a1a", px - 1, py - 1, 1, 1); rect(g, "#4a4a1a", px + 1, py + 1, 1, 1); }
+    else if (k === "coconut") blob(px, py, 2.2 * FSC, "#7a5025");
+    else if (k === "custard") { blob(px, py, 2 * FSC, "#9bc23a"); rect(g, "#6a8a2a", px - 1, py, 1, 1); rect(g, "#6a8a2a", px + 1, py - 1, 1, 1); }
+  }
+}
+function drawBushCrop(k, s, cx, base, leaf, leafDark){
+  const g = SPR || ctx;
+  const r = [0, 2.2, 3, 3.6][s];
+  blob(cx - 2, base - 3, r, leaf); blob(cx + 2, base - 3, r, leaf); blob(cx, base - 6, r * 0.9, leafDark);
+  if (s < 3) return;
+  if (k === "tomato") { blob(cx - 3, base - 4, 1.6, "#e0483c"); blob(cx + 3, base - 4, 1.6, "#e0483c"); blob(cx, base - 8, 1.6, "#e0483c"); }
+  else if (k === "chili") { rect(g, "#c4262e", cx - 3, base - 5, 1, 4); rect(g, "#c4262e", cx + 2, base - 6, 1, 4); rect(g, "#c4262e", cx, base - 3, 1, 3); }
+  else if (k === "straw") { blob(cx - 3, base - 3, 1.4, "#e0483c"); blob(cx + 3, base - 3, 1.4, "#e0483c"); blob(cx, base - 7, 1.4, "#e0483c"); }
+}
+function drawGrapeCrop(s, cx, base, leaf, leafDark){
+  const g = SPR || ctx;
+  rect(g, "#7a5025", cx - 4, base - 12, 1, 13); rect(g, "#7a5025", cx + 4, base - 12, 1, 13); // cọc
+  rect(g, "#2f7d3c", cx - 4, base - 11, 9, 1);
+  blob(cx - 2, base - 8, 2 + s * 0.4, leaf); blob(cx + 2, base - 8, 2 + s * 0.4, leafDark);
+  if (s === 3) { blob(cx - 2, base - 4, 1.5, "#7b3fa0"); blob(cx - 3, base - 3, 1.5, "#7b3fa0"); blob(cx - 1, base - 3, 1.5, "#7b3fa0"); blob(cx + 3, base - 5, 1.5, "#7b3fa0"); blob(cx + 2, base - 4, 1.5, "#7b3fa0"); }
+}
+function drawGroundCrop(k, s, cx, base, leaf, leafDark){
+  const g = SPR || ctx;
+  if (k === "carrot") {
+    rect(g, leaf, cx - 3, base - 5, 1, 4); rect(g, leaf, cx - 1, base - 6, 1, 5); rect(g, leaf, cx + 1, base - 5, 1, 4); rect(g, leafDark, cx + 2, base - 4, 1, 3);
+    if (s === 3) blob(cx, base - 1, 2.2, "#ff8c1a");
+  } else if (k === "pump") {
+    blob(cx - 4, base - 2, 2.2, leaf); blob(cx + 4, base - 2, 2.2, leaf);
+    if (s === 3) { blob(cx, base - 4, 3.6, "#f2a31b"); rect(g, "#8c5a1a", cx, base - 8, 1, 2); }
+  } else if (k === "melon") {
+    blob(cx - 4, base - 2, 2, leaf); blob(cx + 4, base - 2, 2, leaf);
+    if (s === 3) { ell(cx, base - 3, 3.4, 2.4, "#3f9f45"); rect(g, "#2f7d3c", cx - 2, base - 5, 1, 4); rect(g, "#2f7d3c", cx + 1, base - 5, 1, 4); }
+  } else if (k === "corn") {
+    rect(g, "#7fb34a", cx - 1, base - 11, 2, 11); blob(cx - 2, base - 6, 2, leaf); blob(cx + 2, base - 8, 2, leaf);
+    if (s === 3) ell(cx + 3, base - 6, 1.6, 3, "#f5d742");
+  } else if (k === "pine") {
+    for (const a of [-5, -2, 2, 5]) rect(g, leaf, cx + a, base - 6, 1, 6);
+    if (s === 3) { ell(cx, base - 9, 2.6, 3.2, "#e6b800"); rect(g, "#3f9f45", cx - 1, base - 14, 2, 3); }
+  }
 }
 function label(txt, x, y, col){
   ctx.font = "11px VT323, monospace"; ctx.textAlign = "center"; ctx.fillStyle = "#0a1712"; ctx.fillText(txt, x + 1, y + 1); ctx.fillStyle = col; ctx.fillText(txt, x, y);
@@ -1492,7 +1734,7 @@ function render(t){
     const c = S.crops[id], px = x * T - camX, py = y * T - camY;
     rect(ctx, c && c.w ? "#4a2e1d" : "#5e3b27", px + 1, py + 1, 14, 14);
     rect(ctx, "#4a2e1d", px + 2, py + 5, 12, 1); rect(ctx, "#4a2e1d", px + 2, py + 10, 12, 1);
-    if (c) drawCrop(c, px, py);
+    if (c) { drawCrop(c, px, py); cropKgLabel(c, x, y, px, py); }
   }
   for (const pl of G.plots) {
     if (!pl) continue;
@@ -1500,7 +1742,7 @@ function render(t){
       const id = +k, x = id % W, y = (id / W) | 0; if (x < x0 || x > x1 || y < y0 || y > y1) continue;
       const tl = pl.tiles[k], px = x * T - camX, py = y * T - camY;
       if (tl.tl) { rect(ctx, tl.c && tl.c.w ? "#4a2e1d" : "#5e3b27", px + 1, py + 1, 14, 14); rect(ctx, "#4a2e1d", px + 2, py + 5, 12, 1); rect(ctx, "#4a2e1d", px + 2, py + 10, 12, 1); }
-      if (tl.c) drawCrop(tl.c, px, py);
+      if (tl.c) { drawCrop(tl.c, px, py); cropKgLabel(tl.c, x, y, px, py); }
     }
   }
   { const cx = 93 * T + 8 - camX, cy = 15 * T - 6 - camY; if (cx > -80 && cx < cw + 80 && cy > -30 && cy < ch + 30) label("Quầy hạt giống", cx, cy, "#f4e7b0"); }
@@ -1527,7 +1769,7 @@ function render(t){
   if (S.pet && playing && PET.init) ents.push({ y: PET.y, d: () => drawPet(ctx, Math.round(PET.x - camX), Math.round(PET.y - camY), S.pet, PET.fx, PET.fr) });
   Object.values(net.players).filter(p => p.r === "out").forEach(p => ents.push({ y: p.y, d: () => drawRemote(p) }));
   ents.sort((a, b) => a.y - b.y).forEach(o => o.d());
-  const night = Math.max(0, -Math.cos((S.day - 0.5) * Math.PI * 2) - 0.2) * 0.5;
+  const night = Math.max(0, -Math.cos((S.day - 0.5) * Math.PI * 2) - 0.2) * 0.3;
   if (night > 0.01) { ctx.fillStyle = "rgba(15,20,70," + night.toFixed(2) + ")"; ctx.fillRect(0, 0, cw, ch); }
   if (S.pet && playing && PET.init && S.pet.hu < 20) label("Đói!", PET.x - camX, PET.y - camY - 16, "#e8647a");
   if (playing && !dlg && !overlay) { const vn = nearVillager(); if (vn) label("A: " + vn.name, vn.x - camX, vn.y - camY - 24, "#f4c95d"); }
