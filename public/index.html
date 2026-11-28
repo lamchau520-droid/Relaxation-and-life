@@ -77,6 +77,18 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 0}
 .row span{min-width:0}.row button{padding:3px 10px;flex:none}
 .coinline{color:var(--gold)}
+#bagTabs{display:flex;gap:4px;flex:none}
+#bagTabs button{flex:1 1 auto;padding:4px 3px;font-size:15px;white-space:nowrap;background:var(--panel);color:var(--text)}
+#bagTabs button.on{background:var(--gold);color:var(--shadow)}
+#bagList{flex:none;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:34vh;overflow-y:auto;align-content:start;min-height:76px;padding:2px}
+.slot{position:relative;display:flex;align-items:center;justify-content:center;height:64px;padding:2px;background:var(--shadow);box-shadow:inset 0 0 0 3px var(--line)}
+.slot.sel{box-shadow:inset 0 0 0 3px var(--gold)}
+.slot canvas{max-width:90%;max-height:90%}
+.slot b{position:absolute;right:3px;bottom:0;font-size:16px;font-weight:400;color:var(--gold);text-shadow:1px 1px 0 var(--shadow)}
+#bagDet{flex:none;min-height:74px;background:var(--shadow);padding:8px 10px;box-shadow:inset 0 0 0 3px var(--line);font-size:16px;display:flex;flex-direction:column;gap:4px}
+#bagDet .dn{font-size:22px;color:var(--gold)}
+#bagDet button{align-self:flex-start;padding:3px 12px}
+input[type=range]{padding:0;box-shadow:none;background:transparent;accent-color:#f4c95d;height:22px}
 #shop .card{max-height:100%;overflow:auto}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
 /* Điện thoại xoay ngang: thu gọn thanh trên, nút điều khiển và menu để có nhiều vùng chơi hơn */
@@ -159,8 +171,9 @@ input{font:inherit;color:var(--text);background:var(--shadow);border:0;padding:8
     <div class="card">
       <div class="shead"><h2>Túi đồ</h2><button id="bagX">Đóng</button></div>
       <div class="coinline">Xu: <b id="bagCoins">0</b></div>
-      <div style="display:flex;gap:8px;justify-content:center;margin:6px 0"><button id="bagUp" class="go alt">▲ Lên</button><button id="bagDown" class="go alt">▼ Xuống</button></div>
-      <div id="bagList" style="max-height:55vh;overflow-y:auto"></div>
+      <div id="bagTabs"></div>
+      <div id="bagList"></div>
+      <div id="bagDet"></div>
     </div>
   </section>
   <section id="loginP" class="screen" hidden>
@@ -781,6 +794,7 @@ function act(){
   if (fishAction()) return;
   if (inHome) { homeAct(); return; }
   const vn = nearVillager(); if (vn) { talkVillager(vn); return; }
+  swingT = 0.25;
   const [tx, ty] = targetTile(), id = ty * W + tx, type = get(tx, ty), tool = TOOLS[S.tool];
   if (type === 10) { enterRoom("home"); return; }
   if (type === 8 || type === 11) { enterRoom("shop"); return; }
@@ -1099,15 +1113,24 @@ function renderShop(){
     b.onclick = () => { if (S.shop.st[k] <= 0) return toast("Hết hàng, chờ nhập hàng"); if (S.coins >= it.buy) { S.coins -= it.buy; S.inv[k]++; S.shop.st[k]--; refreshHud(); renderShop(); } else toast("Không đủ xu"); };
     row.appendChild(b); buy.appendChild(row);
   });
-  // Đang có để bán: sắp theo số tiền bán được, thấp đến cao
+  // Đang có để bán: sắp theo số tiền bán được, thấp đến cao; thanh trượt chọn số lượng muốn bán
   keys.filter(k => !ITEMS[k].buy && S.inv[k] > 0).sort((a, b) => itemValue(a) - itemValue(b)).forEach(k => {
-    const it = ITEMS[k], row = document.createElement("div"); row.className = "row";
-    if (FISH_LOOK[k]) row.dataset.fish = k;
-    row.innerHTML = "<span>" + priceDot(itemValue(k)) + it.n + " x" + S.inv[k] + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "") + "</span>";
-    if (row.dataset.fish) row.firstChild.prepend(fishCanvas(k, 1.2));
-    const b = document.createElement("button"); b.textContent = "Bán " + itemValue(k);
-    b.onclick = () => { sellItem(k); refreshHud(); renderShop(); };
-    row.appendChild(b); sell.appendChild(row);
+    const it = ITEMS[k], have = S.inv[k], wrap = document.createElement("div"); wrap.style.cssText = "padding:6px 0;border-bottom:2px solid var(--line)";
+    const top = document.createElement("div"); top.className = "row"; const nm = document.createElement("span");
+    nm.style.cssText = "display:flex;align-items:center";
+    if (FISH_LOOK[k]) nm.appendChild(fishCanvas(k, 1.2));
+    nm.appendChild(document.createTextNode(it.n + " x" + have + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : ""))); top.appendChild(nm); wrap.appendChild(top);
+    const ctl = document.createElement("div"); ctl.className = "row";
+    const minus = document.createElement("button"); minus.textContent = "-";
+    const rg = document.createElement("input"); rg.type = "range"; rg.min = 1; rg.max = have; rg.value = have; rg.style.flex = "1";
+    const plus = document.createElement("button"); plus.textContent = "+";
+    const b = document.createElement("button");
+    const upd = () => { b.textContent = "Bán " + rg.value + " · " + qtyValue(k, +rg.value).toLocaleString("vi-VN") + " xu"; };
+    rg.oninput = upd; minus.onclick = () => { rg.value = Math.max(1, +rg.value - 1); upd(); }; plus.onclick = () => { rg.value = Math.min(have, +rg.value + 1); upd(); };
+    b.onclick = () => { sellQty(k, +rg.value); refreshHud(); renderShop(); };
+    upd(); ctl.appendChild(minus); ctl.appendChild(rg); ctl.appendChild(plus); wrap.appendChild(ctl);
+    const bt = document.createElement("div"); bt.className = "row"; bt.style.justifyContent = "flex-end"; bt.appendChild(b); wrap.appendChild(bt);
+    sell.appendChild(wrap);
   });
   if (!sell.children.length) sell.innerHTML = "<div class='row'><span>Chưa có gì để bán</span></div>";
 }
@@ -1150,6 +1173,18 @@ function itemValue(k){
   if (!it.kg) return it.sell * S.inv[k];
   const kg = (S.wt && S.wt[k] != null) ? S.wt[k] : S.inv[k] * 1.25; // quả cũ chưa có số kg: ước tính 1,25 kg
   return Math.round(kg * it.sell);
+}
+function qtyValue(k, n){
+  const it = ITEMS[k], have = S.inv[k] || 0; if (!have || n <= 0) return 0;
+  if (!it.kg) return it.sell * n;
+  const kg = (S.wt && S.wt[k] != null) ? S.wt[k] : have * 1.25;
+  return Math.round(kg * (n / have) * it.sell);
+}
+function sellQty(k, n){
+  const have = S.inv[k] || 0; n = Math.max(0, Math.min(have, n | 0)); if (!n) return;
+  S.coins += qtyValue(k, n);
+  if (ITEMS[k].kg) { const kg = (S.wt && S.wt[k] != null) ? S.wt[k] : have * 1.25; S.wt = S.wt || {}; S.wt[k] = n >= have ? 0 : round1(Math.max(0, kg - kg * n / have)); }
+  S.inv[k] = have - n;
 }
 function sellItem(k){ S.coins += itemValue(k); S.inv[k] = 0; if (S.wt) S.wt[k] = 0; }
 function sellAll(){
@@ -1591,7 +1626,7 @@ function renderHome(t){
   ctx.drawImage(room === "shop" ? shopCv : homeCv, -camX, -camY);
   const list = [
     { y: NPC.y, d: () => (room === "shop" ? drawKeeper : drawNpc)(ctx, NPC.x - camX, Math.round(NPC.y - camY + Math.sin(t / 500) * 0.6)) },
-    { y: S.py, d: () => drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0) }
+    { y: S.py, d: () => { drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0); drawHeld(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.face); } }
   ].concat(Object.values(net.players).filter(p => p.r === room).map(p => ({ y: p.y, d: () => drawRemote(p) }))).sort((a, b) => a.y - b.y);
   list.forEach(o => o.d());
   if (!dlg && !overlay && Math.hypot(S.px - NPC.x, S.py - NPC.y) < 28) label(room === "shop" ? "A: mua bán" : "A: nói chuyện", NPC.x - camX, NPC.y - camY - 24, "#f4c95d");
@@ -1619,10 +1654,60 @@ function icon(name){
   ICONS[name].forEach((row, y) => [...row].forEach((ch2, x) => { if (ch2 !== ".") { g.fillStyle = name === "hoe" && ch2 === "a" ? "#c0c8d0" : IPAL[ch2]; g.fillRect(x, y, 1, 1); } }));
   return c;
 }
+
+/* ===== Hình công cụ (16x16): cuốc, bình tưới, túi hạt, cần câu; có bản nâng cấp ===== */
+function toolCanvas(kind, scale, up, seedCol){
+  const cnv = document.createElement("canvas"); cnv.width = 16; cnv.height = 16;
+  cnv.style.width = Math.round(16 * scale) + "px"; cnv.style.height = Math.round(16 * scale) + "px"; cnv.style.imageRendering = "pixelated"; cnv.style.flex = "none";
+  const g = cnv.getContext("2d");
+  const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x, y, 1, 1); };
+  const rc = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+  const line = (x0, y0, x1, y1, c) => { const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy; for (;;) { px(x0, y0, c); if (x0 === x1 && y0 === y1) break; const e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } } };
+  if (kind === "hoe") {
+    line(2, 14, 11, 5, "#6b4423"); line(3, 14, 12, 5, "#a0703c");
+    const m1 = up ? "#dfe8f0" : "#9aa3ad", m2 = up ? "#7fb2ff" : "#6b737c";
+    line(9, 3, 14, 8, m2); line(10, 3, 14, 7, m1); line(9, 4, 13, 8, m1); px(14, 8, m2);
+    if (up) { px(11, 4, "#ffffff"); px(10, 6, "#f4c95d"); px(9, 7, "#f4c95d"); }
+  } else if (kind === "water") {
+    const a = up ? "#aeb7c0" : "#3d7be0", b = up ? "#dfe6ec" : "#5ec2e8", d = up ? "#7b8791" : "#2a58a8";
+    rc(3, 6, 8, 7, a); rc(3, 6, 8, 2, b); rc(3, 12, 8, 1, d); rc(10, 6, 1, 7, d);
+    line(11, 10, 14, 5, a); line(12, 10, 15, 5, d); rc(13, 3, 3, 2, b); px(14, 4, d);
+    px(4, 5, a); line(5, 4, 8, 4, a); px(9, 5, a); px(3, 5, d);
+    rc(1, 7, 1, 4, a); px(2, 6, a); px(2, 11, a);
+    if (up) { px(5, 9, "#7b8791"); px(8, 9, "#7b8791"); px(5, 11, "#7b8791"); px(8, 11, "#7b8791"); }
+    px(15, 8, "#8be0ff"); px(14, 9, "#8be0ff");
+  } else if (kind === "seed") {
+    rc(4, 6, 8, 8, "#c9a66b"); rc(3, 8, 10, 5, "#c9a66b"); rc(4, 13, 8, 1, "#a0703c"); rc(12, 7, 1, 6, "#a0703c");
+    rc(6, 3, 4, 3, "#c9a66b"); rc(5, 2, 1, 2, "#a0703c"); rc(10, 2, 1, 2, "#a0703c"); rc(6, 5, 4, 1, "#e8404f");
+    rc(6, 9, 4, 3, seedCol || "#8bd17c"); px(6, 9, "#ffffff");
+  } else if (kind === "rod") {
+    const r1 = up ? "#2a2a3a" : "#8a5a2b", r2 = up ? "#f4c95d" : "#a0703c";
+    line(3, 13, 13, 2, r1); line(4, 13, 14, 2, r2);
+    rc(1, 13, 3, 2, up ? "#f4c95d" : "#6b4423"); rc(4, 10, 3, 3, "#aab3bb"); px(5, 11, "#6b737c");
+    line(14, 3, 14, 10, "#f3ecd8"); px(14, 11, "#d8dde4"); px(13, 12, "#d8dde4"); px(12, 11, "#d8dde4");
+    px(14, 8, "#e8404f"); px(14, 9, "#ffffff");
+  }
+  return cnv;
+}
+const TOOLSIG = () => [S.up.hoe2 ? 1 : 0, S.up.can2 ? 1 : 0, 0, S.up.rod2 ? 1 : 0].join("") + (CROPS[S.seed] ? CROPS[S.seed].c : "");
+const toolUpFor = k => ({ hoe: S.up.hoe2, water: S.up.can2, rod: S.up.rod2 })[k] ? 1 : 0;
+const toolImg = (k, scale) => toolCanvas(k, scale, toolUpFor(k), CROPS[S.seed] && CROPS[S.seed].c);
+const TOOLDESC = { hoe: "Cuốc đất để gieo hạt. Cuốc sắt cuốc được 2 ô một lần.", water: "Múc nước ở sông hoặc hồ rồi tưới cây. Bình sắt giúp cây lớn nhanh hơn.", seed: "Gieo hạt giống đang chọn lên ô đất đã cuốc.", rod: "Câu cá ở hồ. Cần tốt có thanh bắt rộng hơn." };
+let swingT = 0;
+const heldCache = {};
+function drawHeld(c, x, y, dir){
+  if (!playing) return;
+  const k = TOOLS[S.tool], sig = k + toolUpFor(k) + (k === "seed" ? S.seed : "");
+  let cv = heldCache[sig]; if (!cv) cv = heldCache[sig] = toolImg(k, 1);
+  const hx = dir === "left" ? x - 5 : x + 5, hy = y - 6, fl = dir === "left" ? -1 : 1;
+  c.save(); c.translate(hx, hy);
+  if (swingT > 0) c.rotate(fl * -Math.sin((0.25 - swingT) / 0.25 * Math.PI) * 1.1);
+  c.scale(fl, 1); c.drawImage(cv, -2, -12, 13, 13); c.restore();
+}
 const toolEls = [];
 TOOLS.forEach((k, i) => {
   const b = document.createElement("button"); b.className = "tool";
-  b.appendChild(icon(k)); const s = document.createElement("span"); s.textContent = TOOLN[i]; b.appendChild(s);
+  b.appendChild(toolImg(k, 2)); const s = document.createElement("span"); s.textContent = TOOLN[i]; b.appendChild(s);
   const n = document.createElement("b"); b.appendChild(n); b.onclick = () => selectTool(i);
   $("tools").appendChild(b); toolEls.push(b);
 });
@@ -1630,7 +1715,14 @@ function selectTool(i){
   if (i === 2 && S.tool === 2) { S.seed = SEEDS[(SEEDS.indexOf(S.seed) + 1) % SEEDS.length]; toast("Hạt: " + CROPS[S.seed].n); }
   S.tool = i; refreshHud();
 }
+let toolSig = "";
+function refreshToolIcons(){
+  const sg = TOOLSIG(); if (sg === toolSig) return; toolSig = sg;
+  toolEls.forEach((b, i) => { b.replaceChild(toolImg(TOOLS[i], 2), b.querySelector("canvas")); });
+  for (const k in heldCache) delete heldCache[k];
+}
 function refreshHud(){
+  refreshToolIcons();
   $("coins").textContent = S.coins + " xu";
   const i = S.inv, fish = FISH_KEYS.reduce((a, k) => a + (i[k] || 0), 0);
   const fruitKg = Object.keys(ITEMS).reduce((a, k) => a + ((ITEMS[k].kg && S.wt && S.wt[k]) || 0), 0);
@@ -1687,42 +1779,71 @@ function seedIcon(seedKey){
   return cnv;
 }
 const BAG = [["Hạt giống", ["sd_carrot", "sd_straw", "sd_pump", "sd_tomato", "sd_chili", "sd_melon", "sd_grape", "sd_durian", "sd_mango", "sd_corn", "sd_apple", "sd_pine", "sd_coconut", "sd_custard", "sd_orange", "sd_lemon"]], ["Nông sản", ["carrot", "straw", "pump", "tomato", "chili", "melon", "grape", "durian", "mango", "corn", "apple", "pine", "coconut", "custard", "orange", "lemon"]], ["Chế biến", ["orange_juice", "lemon_juice", "mango_jam", "coconut_water"]], ["Cá", FISH_KEYS], ["Khác", ["boot"]]];
+const JAR = { orange_juice: ["#ff9a2a", 0], lemon_juice: ["#e8e03a", 0], mango_jam: ["#ffb020", 1], coconut_water: ["#e8f4e0", 0] };
+function jarIcon(k){
+  const cnv = document.createElement("canvas"); cnv.width = 16; cnv.height = 16; const g = cnv.getContext("2d"), j = JAR[k] || ["#ccc", 0];
+  g.fillStyle = "#cfe9f2"; if (j[1]) { g.fillRect(4, 5, 8, 9); g.fillStyle = "#c9a66b"; g.fillRect(4, 3, 8, 2); } else { g.fillRect(6, 2, 4, 4); g.fillRect(4, 6, 8, 8); g.fillStyle = "#a0703c"; g.fillRect(6, 1, 4, 2); }
+  g.fillStyle = j[0]; g.fillRect(5, j[1] ? 7 : 8, 6, 5); g.fillStyle = "rgba(255,255,255,.7)"; g.fillRect(5, 7, 1, 6);
+  return cnv;
+}
+function itemIcon(k){
+  if (FISH_LOOK[k]) { const c = fishCanvas(k, 2.4); c.style.margin = "0"; return c; }
+  if (JAR[k]) { const c = jarIcon(k); c.style.cssText = "width:44px;height:44px;image-rendering:pixelated"; return c; }
+  let sd = SEEDS.find(x => CROPS[x].seed === k) ? k : (SEEDS.find(x => CROPS[x].item === k) ? CROPS[SEEDS.find(x => CROPS[x].item === k)].seed : null);
+  if (sd) { const c = seedIcon(sd); c.style.cssText = "width:44px;height:44px;image-rendering:pixelated"; return c; }
+  const c = document.createElement("div"); c.textContent = ITEMS[k] ? ITEMS[k].n : k; c.style.fontSize = "14px"; return c;
+}
+let bagTab = 0, bagSel = null;
+const BAGTABS = ["Dụng cụ", "Hạt", "Nông sản", "Cá", "Khác", "Thú cưng"];
+function bagCount(k){ return k === "pfood" ? S.pfood : (S.inv[k] || 0); }
 function renderBag(){
   $("bagCoins").textContent = S.coins;
-  const box = $("bagList"); box.innerHTML = ""; let any = false;
-  const eq = (row, on, onTxt, fn) => { const b = document.createElement("button"); b.textContent = on ? onTxt : "Trang bị"; b.disabled = on; if (!on) b.onclick = fn; row.appendChild(b); };
-  const th = document.createElement("h3"); th.textContent = "Dụng cụ"; box.appendChild(th);
-  TOOLS.forEach((t, i) => {
-    const row = document.createElement("div"); row.className = "row"; const nm = document.createElement("span"); nm.textContent = i === 2 ? "Hạt giống" : TOOLN[i]; row.appendChild(nm);
-    eq(row, S.tool === i, "Đang cầm", () => { S.tool = i; refreshHud(); renderBag(); toast("Đã cầm: " + (i === 2 ? "Hạt " + CROPS[S.seed].n : TOOLN[i])); }); box.appendChild(row);
-  });
-  if (S.pet) {
-    const p = S.pet, ph = document.createElement("h3"); ph.textContent = "Thú cưng"; box.appendChild(ph);
-    const r1 = document.createElement("div"); r1.className = "row"; const s1 = document.createElement("span");
-    s1.textContent = p.name + " (" + PETN[p.t] + " " + STN[petStage(p)] + ") · No " + Math.round(p.hu) + "% · KN " + p.exp; r1.appendChild(s1);
-    const bt = document.createElement("button"); bt.textContent = "Vuốt ve"; bt.onclick = petPet; r1.appendChild(bt); box.appendChild(r1);
-    Object.keys(FOODS).filter(k => foodCount(k) > 0).forEach(k => {
-      const r = document.createElement("div"); r.className = "row"; const s = document.createElement("span"); s.textContent = (FOODS[k][2] || ITEMS[k].n) + " x" + foodCount(k); r.appendChild(s);
-      const b = document.createElement("button"); b.textContent = "Cho ăn"; b.onclick = () => feedPet(k); r.appendChild(b); box.appendChild(r);
-    });
+  const tabs = $("bagTabs"), grid = $("bagList"), det = $("bagDet"); tabs.innerHTML = ""; grid.innerHTML = ""; det.innerHTML = "";
+  const showTabs = BAGTABS.map((n, i) => i).filter(i => i !== 5 || S.pet);
+  if (!showTabs.includes(bagTab)) bagTab = 0;
+  showTabs.forEach(i => { const b = document.createElement("button"); b.textContent = BAGTABS[i]; if (i === bagTab) b.className = "on"; b.onclick = () => { bagTab = i; bagSel = null; renderBag(); }; tabs.appendChild(b); });
+  const slot = (key, node, count) => {
+    const b = document.createElement("button"); b.className = "slot" + (bagSel === key ? " sel" : ""); b.appendChild(node);
+    if (count != null) { const n = document.createElement("b"); n.textContent = count; b.appendChild(n); }
+    b.onclick = () => { bagSel = key; renderBag(); }; grid.appendChild(b);
+  };
+  const line = (txt, cls) => { const d = document.createElement("div"); if (cls) d.className = cls; d.textContent = txt; det.appendChild(d); return d; };
+  const btn = (txt, fn, dis) => { const b = document.createElement("button"); b.textContent = txt; b.disabled = !!dis; if (!dis) b.onclick = fn; det.appendChild(b); };
+  const itemDet = k => {
+    const it = ITEMS[k]; line(it.n, "dn");
+    line("Có " + S.inv[k] + (it.kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : ""));
+    if (it.sell) line("Bán được khoảng " + itemValue(k).toLocaleString("vi-VN") + " xu (bán ở cửa hàng)");
+  };
+  if (bagTab === 0) {
+    TOOLS.forEach((t, i) => slot("t" + i, toolImg(t, 2.5), null));
+    if (!bagSel) bagSel = "t" + S.tool;
+    const i = +String(bagSel).slice(1), t = TOOLS[i];
+    line(i === 2 ? "Hạt " + CROPS[S.seed].n : TOOLN[i], "dn"); line(TOOLDESC[t]);
+    const upName = { hoe: "hoe2", water: "can2", rod: "rod2" }[t]; if (upName && S.up[upName]) line("Đã nâng cấp: " + MERCH.find(m => m.id === upName).n);
+    btn(S.tool === i ? "Đang cầm" : "Cầm", () => { S.tool = i; refreshHud(); renderBag(); toast("Đã cầm: " + (i === 2 ? "Hạt " + CROPS[S.seed].n : TOOLN[i])); }, S.tool === i);
+    grid.querySelectorAll(".slot").forEach((e, j) => e.classList.toggle("sel", "t" + j === bagSel));
+    return;
   }
-  const upn = Object.keys(S.up).filter(k => S.up[k]).map(k => MERCH.find(m => m.id === k).n);
-  if (upn.length) { const uh = document.createElement("h3"); uh.textContent = "Nâng cấp"; box.appendChild(uh); const up = document.createElement("p"); up.className = "sub"; up.textContent = upn.join(", "); box.appendChild(up); }
-  BAG.forEach(g => {
-    const have = g[1].filter(k => S.inv[k] > 0); if (!have.length) return; any = true;
-    const h = document.createElement("h3"); h.textContent = g[0]; box.appendChild(h);
-    have.forEach(k => {
-      const row = document.createElement("div"); row.className = "row";
-      const nm = document.createElement("span"); nm.textContent = ITEMS[k].n; const ct = document.createElement("b"); ct.textContent = "x" + S.inv[k] + (ITEMS[k].kg ? " · " + round1((S.wt && S.wt[k]) || 0) + " kg" : "");
-      if (SEEDS.some(x => CROPS[x].seed === k)) row.appendChild(seedIcon(k));
-      if (FISH_LOOK[k]) row.appendChild(fishCanvas(k, 1.5));
-      row.appendChild(nm); row.appendChild(ct);
-      const sk = SEEDS.find(s => CROPS[s].seed === k);
-      if (sk) eq(row, S.seed === sk, "Đang chọn", () => { S.seed = sk; S.tool = 2; refreshHud(); renderBag(); toast("Trang bị: Hạt " + CROPS[sk].n); });
-      box.appendChild(row);
-    });
-  });
-  if (!any) { const p = document.createElement("p"); p.className = "sub"; p.textContent = "Túi đồ đang trống."; box.appendChild(p); }
+  if (bagTab === 5) {
+    const p = S.pet; if (p) {
+      line(p.name + " (" + PETN[p.t] + " " + STN[petStage(p)] + ")", "dn"); line("No " + Math.round(p.hu) + "% · Kinh nghiệm " + p.exp);
+      const foods = Object.keys(FOODS).filter(k => foodCount(k) > 0);
+      foods.forEach(k => { const ic = k === "pfood" ? (() => { const c = toolCanvas("seed", 2.5, 0, "#c9a66b"); return c; })() : itemIcon(k); slot("f" + k, ic, foodCount(k)); });
+      btn("Vuốt ve", petPet);
+      if (bagSel && String(bagSel)[0] === "f") { const k = String(bagSel).slice(1); line("Thức ăn: " + (FOODS[k][2] || ITEMS[k].n) + " (+" + FOODS[k][0] + " no, +" + FOODS[k][1] + " kinh nghiệm)"); btn("Cho ăn", () => feedPet(k)); }
+      else if (!foods.length) line("Chưa có thức ăn trong túi.");
+    }
+    return;
+  }
+  const keys = bagTab === 1 ? BAG[0][1] : (bagTab === 2 ? BAG[1][1] : (bagTab === 3 ? BAG[3][1] : BAG[2][1].concat(BAG[4][1])));
+  const have = keys.filter(k => S.inv[k] > 0);
+  have.forEach(k => slot(k, itemIcon(k), S.inv[k]));
+  if (!have.length) { line("Chưa có gì ở mục này."); return; }
+  if (!bagSel || !have.includes(bagSel)) bagSel = have[0];
+  grid.querySelectorAll(".slot").forEach((e, j) => e.classList.toggle("sel", have[j] === bagSel));
+  itemDet(bagSel);
+  const sk = SEEDS.find(x => CROPS[x].seed === bagSel);
+  if (sk) btn(S.seed === sk ? "Đang chọn" : "Chọn gieo", () => { S.seed = sk; S.tool = 2; refreshHud(); renderBag(); toast("Trang bị: Hạt " + CROPS[sk].n); }, S.seed === sk && S.tool === 2);
 }
 function openBag(){ if (!playing || overlay) return; overlay = true; $("bag").hidden = false; renderBag(); }
 function closeBag(){ overlay = false; $("bag").hidden = true; }
@@ -1809,7 +1930,7 @@ function bindHold(id, dy){
   b.addEventListener("pointerdown", () => { step(); clearInterval(bagRep); bagRep = setInterval(step, 120); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, stop));
 }
-bindHold("bagUp", -120); bindHold("bagDown", 120); $("bagX").onclick = closeBag; $("mshopX").onclick = closeMShop;
+$("bagX").onclick = closeBag; $("mshopX").onclick = closeMShop;
 $("admX").onclick = closeAdm;
 $("chatBtn").onclick = () => openChat(""); $("chatX").onclick = closeChat; $("chatGo").onclick = chatSend;
 $("chatIn").addEventListener("keydown", e => { if (e.key === "Enter") chatSend(); });
@@ -1982,7 +2103,7 @@ function render(t){
     if (F.st === "bite") label("!", bx, by - 6, "#f4c95d");
   }
   const ents = VIL.filter(n => n.on).map(n => ({ y: n.y, d: () => drawVillager(ctx, Math.round(n.x - camX), Math.round(n.y - camY), n.look, n.dir, n.mode === "walk" ? n.fr : 0) }));
-  if (playing) ents.push({ y: S.py, d: () => drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0) });
+  if (playing) ents.push({ y: S.py, d: () => { drawChar(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.gender, S.face, P.moving ? P.frame : 0); drawHeld(ctx, Math.round(S.px - camX), Math.round(S.py - camY), S.face); } });
   else ents.push({ y: 10 * T, d: () => drawChar(ctx, 11 * T + 8 - camX, 10 * T - camY, "boy", "down", 0) });
   if (S.pet && playing && PET.init) ents.push({ y: PET.y, d: () => drawPet(ctx, Math.round(PET.x - camX), Math.round(PET.y - camY), S.pet, PET.fx, PET.fr) });
   Object.values(net.players).filter(p => p.r === "out").forEach(p => ents.push({ y: p.y, d: () => drawRemote(p) }));
@@ -2001,6 +2122,7 @@ function frame(t){
     if (keys.arrowup || keys.w) iy = -1; if (keys.arrowdown || keys.s) iy = 1;
     if (!overlay) movePlayer(ix, iy, dt); else P.moving = false;
     if (inHome && S.py >= 8 * T) exitHome();
+    swingT = Math.max(0, swingT - dt);
     if (!net.on) growCrops(dt); updateFishing(dt); S.day = (S.day + dt / 300) % 1;
     $("clock").textContent = clockText();
     for (let i = floats.length - 1; i >= 0; i--) { floats[i].t -= dt; if (floats[i].t <= 0) floats.splice(i, 1); }
