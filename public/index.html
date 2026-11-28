@@ -808,7 +808,7 @@ $("dInFile").onchange = () => {
 const AUTH = { tok: localStorage.getItem("vc_tok") || "", name: localStorage.getItem("vc_name") || "", pend: null };
 const authMsg = t => { $("acMsg").textContent = t; };
 // Để trống nếu game mở từ chính link máy chủ. Nếu chơi từ trang/file khác, điền link máy chủ, ví dụ https://ten-game.onrender.com
-const GAME_SERVER = "https://relaxation-and-life.onrender.com";
+const GAME_SERVER = "https://relaxation-and-life-3.onrender.com";
 function serverUrl(){
   const v = (localStorage.getItem("vc_server") || GAME_SERVER || "").trim().replace(/\/+$/, "");
   if (v) return v.replace(/^http/, "ws") + "/ws";
