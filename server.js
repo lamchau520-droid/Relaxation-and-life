@@ -64,7 +64,7 @@ const KG_ITEMS = new Set(["grape", "durian", "mango", "apple", "pine", "coconut"
 const randKg = n => { let t = 0; for (let i = 0; i < n; i++) t += 0.5 + Math.random() * 1.5; return Math.round(t * 10) / 10; };
 const DRY_LIMIT = 60; // cây chưa được tưới quá 60 giây (khi chưa chín) sẽ chết
 const PLOTN = 8;
-const plotX = p => 40 + (p % 2) * 14, plotY = p => 14 + (p >> 1) * 17;
+const plotX = p => 41 + (p % 4) * 13, plotY = p => 3 + (p >> 2) * 14; // phải khớp với client (public/index.html)
 // Ô vườn: luống 10x6 nằm dưới nhà. Luống trong ô tương ứng với luống đất làng.
 function plotAt(x, y){
   for (let p = 0; p < PLOTN; p++) { const x0 = plotX(p), y0 = plotY(p); if (x >= x0 + 1 && x <= x0 + 10 && y >= y0 + 6 && y <= y0 + 11) return p; }
