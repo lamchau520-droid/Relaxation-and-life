@@ -27,6 +27,9 @@ Mở `http://localhost:3000` ở hai tab để thấy nhau.
 
 Mã mở khóa chỉ kiểm tra trên client, không an toàn tuyệt đối. Khi chơi online, `/gio` không đổi được giờ chung của server.
 
+## Sổ tay
+- Bấm nút **Sổ tay** (hoặc phím B) để xem danh sách các loài cây (thời gian lớn, giá hạt, giá bán...) và các loài cá (tỉ lệ gặp, độ khó, giá bán).
+
 ## Vườn chung (online)
 - Từ làng, đi tới cổng gỗ (ở rìa phải làng, ngang hàng với cái ao) và bấm **A** để vào Vườn chung. Bấm lại ở cổng để về làng.
 - Vườn chung có 8 ô vườn có hàng rào. Mỗi ô có một ngôi nhà giống nhau ở phía trên và luống đất ở phía dưới. Bấm **A** vào một ô trống để nhận ô (mỗi người chỉ có một ô).
